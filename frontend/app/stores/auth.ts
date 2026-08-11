@@ -59,8 +59,8 @@ export const useAuthStore = defineStore('auth', () => {
       token: string
       user: AdminUser
       tenant: TenantInfo
-    }>('/auth/sso', {
-      baseURL: useRuntimeConfig().public.apiBase,
+    >('/auth/sso', {
+      baseURL: apiBase(),
       method: 'POST',
       body: { token: ssoToken },
     })
@@ -77,8 +77,8 @@ export const useAuthStore = defineStore('auth', () => {
     const data = await $fetch<{
       token: string
       employee: EmployeeUser
-    }>('/auth/employee-login', {
-      baseURL: useRuntimeConfig().public.apiBase,
+    >('/auth/employee-login', {
+      baseURL: apiBase(),
       method: 'POST',
       body: { name, pin },
     })
@@ -93,7 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (token.value) {
       try {
         await $fetch('/auth/logout', {
-          baseURL: useRuntimeConfig().public.apiBase,
+          baseURL: apiBase(),
           method: 'POST',
           headers: { Authorization: `Bearer ${token.value}` },
         })

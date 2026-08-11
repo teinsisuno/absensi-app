@@ -1,8 +1,18 @@
 import type { UseFetchOptions } from 'nuxt/app'
 
-/** Base URL API tenant — dev: /api/v1 (proxy nitro), prod: same origin. */
+/**
+ * Base URL API tenant.
+ * - Prod: same origin (`/api/v1`, dari runtimeConfig).
+ * - Dev: backend di port 8000, hostname mengikuti tenant yang dibuka
+ *   (tenancy by domain — biar tenant selain `tokoa` juga bisa dicoba lokal).
+ */
 export function apiBase() {
-  return useRuntimeConfig().public.apiBase as string
+  const configured = useRuntimeConfig().public.apiBase as string
+  if (import.meta.server) return configured
+  if (process.env.NODE_ENV !== 'production') {
+    return `http://${window.location.hostname}:8000/api/v1`
+  }
+  return configured
 }
 
 function authHeaders() {
