@@ -59,7 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
       token: string
       user: AdminUser
       tenant: TenantInfo
-    >('/auth/sso', {
+    }>('/auth/sso', {
       baseURL: apiBase(),
       method: 'POST',
       body: { token: ssoToken },
@@ -77,7 +77,7 @@ export const useAuthStore = defineStore('auth', () => {
     const data = await $fetch<{
       token: string
       employee: EmployeeUser
-    >('/auth/employee-login', {
+    }>('/auth/employee-login', {
       baseURL: apiBase(),
       method: 'POST',
       body: { name, pin },
