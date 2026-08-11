@@ -72,6 +72,25 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  /** Login owner/admin langsung dari subdomain (email + password akun Central) */
+  async function loginAdmin(email: string, password: string) {
+    const data = await $fetch<{
+      token: string
+      user: AdminUser
+      tenant: TenantInfo
+    }>('/auth/admin-login', {
+      baseURL: apiBase(),
+      method: 'POST',
+      body: { email, password },
+    })
+    token.value = data.token
+    user.value = data.user
+    employee.value = null
+    tenant.value = data.tenant
+    persist()
+    return data
+  }
+
   /** Login karyawan via nama + PIN */
   async function loginEmployee(name: string, pin: string) {
     const data = await $fetch<{
@@ -119,6 +138,7 @@ export const useAuthStore = defineStore('auth', () => {
     persist,
     restore,
     loginSso,
+    loginAdmin,
     loginEmployee,
     logout,
   }

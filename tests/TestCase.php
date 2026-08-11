@@ -16,6 +16,9 @@ abstract class TestCase extends BaseTestCase
     {
         static::ensureTestDatabase();
         parent::setUp();
+
+        // Konsisten dengan withTenantHost() yang hardcode {slug}-absensi.megakomsel.com.
+        config(['absensi.tenant_domain_pattern' => '{slug}-absensi.megakomsel.com']);
     }
 
     /**
@@ -76,28 +79,16 @@ abstract class TestCase extends BaseTestCase
         // Cleanup DB tenant SEBELUM parent::tearDown() — setelah itu facade db tidak bisa dipakai
         $pdo = DB::connection('central')->getPdo();
 
-        // Drop DB tenant yang dibuat selama test
+        // Drop DB tenant yang dibuat DURING TEST ini saja.
+        // ⚠️ JANGAN drop "orphan" lain — server MySQL dipakai bareng dev,
+        // DB tenant dev (paijo-1, toko-uji, dst) tidak terdaftar di central TEST
+        // dan akan ikut terhapus kalau cleanup terlalu agresif.
         foreach ($this->createdTenantSlugs as $slug) {
             try {
                 $pdo->exec("DROP DATABASE IF EXISTS `tenant_absensi_{$slug}`");
             } catch (\Throwable) {
                 // ignore — cleanup best effort
             }
-        }
-
-        // Drop orphan DB (ada di server tapi tidak punya row di central tenants —
-        // sisa dari run yang gagal; central selalu migrate:fresh tiap test jadi aman)
-        try {
-            $dbs = $pdo->query("SHOW DATABASES LIKE 'tenant_absensi_%'")->fetchAll(PDO::FETCH_COLUMN);
-            $tenantSlugs = DB::connection('central')->table('tenants')->pluck('id')->all();
-            foreach ($dbs as $db) {
-                $slug = substr($db, strlen('tenant_absensi_'));
-                if (! in_array($slug, $tenantSlugs, true)) {
-                    $pdo->exec("DROP DATABASE IF EXISTS `{$db}`");
-                }
-            }
-        } catch (\Throwable) {
-            // ignore — cleanup best effort
         }
 
         parent::tearDown();

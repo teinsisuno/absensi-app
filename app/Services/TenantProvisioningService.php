@@ -65,12 +65,13 @@ class TenantProvisioningService
                 'subscription_id' => $subscriptionId,
             ]);
         } elseif ($meta->wasChanged('status') && $meta->status === 'provisioning') {
-            // Retry provisioning yang sebelumnya gagal: pastikan DB + migrasi selesai
+            // Retry provisioning yang sebelumnya gagal: pastikan DB + migrasi selesai.
+            // send() butuh callable yang mengembalikan payload untuk job pertama pipeline.
             try {
                 JobPipeline::make([
                     CreateDatabase::class,
                     MigrateDatabase::class,
-                ])->send($tenant)->shouldBeQueued(false)->dispatch();
+                ])->send(fn () => $tenant)->shouldBeQueued(false)->dispatch();
             } catch (TenantDatabaseAlreadyExistsException $e) {
                 // DB sudah ada dari percobaan sebelumnya — cukup pastikan termigrasi
                 (new MigrateDatabase($tenant))->handle();

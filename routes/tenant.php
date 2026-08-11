@@ -37,6 +37,7 @@ Route::middleware([
 ])->prefix('api/v1')->group(function () {
     // Auth publik (dalam konteks tenant)
     Route::post('/auth/sso', [AuthController::class, 'sso']);
+    Route::post('/auth/admin-login', [AuthController::class, 'adminLogin']);
     Route::post('/auth/employee-login', [AuthController::class, 'employeeLogin']);
 
     // Auth terproteksi

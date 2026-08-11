@@ -6,10 +6,33 @@
           A
         </div>
         <h1 class="text-lg font-semibold text-gray-900">Absensi Karyawan</h1>
-        <p class="mt-1 text-sm text-gray-500">Masuk pakai nama dan PIN</p>
+        <p class="mt-1 text-sm text-gray-500">
+          {{ mode === 'admin' ? 'Masuk sebagai Owner/Admin' : 'Masuk pakai nama dan PIN' }}
+        </p>
       </div>
 
-      <form @submit.prevent="submit">
+      <!-- Pilih mode login -->
+      <div class="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 text-sm">
+        <button
+          type="button"
+          class="rounded-lg py-2 font-medium transition"
+          :class="mode === 'employee' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+          @click="mode = 'employee'"
+        >
+          Karyawan
+        </button>
+        <button
+          type="button"
+          class="rounded-lg py-2 font-medium transition"
+          :class="mode === 'admin' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+          @click="mode = 'admin'"
+        >
+          Owner/Admin
+        </button>
+      </div>
+
+      <!-- Form karyawan (PIN) -->
+      <form v-if="mode === 'employee'" @submit.prevent="submitEmployee">
         <div class="mb-4">
           <label class="label" for="name">Nama</label>
           <input
@@ -47,8 +70,44 @@
         </button>
       </form>
 
+      <!-- Form owner/admin (email + password akun Central) -->
+      <form v-else @submit.prevent="submitAdmin">
+        <div class="mb-4">
+          <label class="label" for="admin-email">Email</label>
+          <input
+            id="admin-email"
+            v-model="email"
+            type="email"
+            class="input"
+            placeholder="email@perusahaan.com"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <div class="mb-6">
+          <label class="label" for="admin-password">Password</label>
+          <input
+            id="admin-password"
+            v-model="password"
+            type="password"
+            class="input"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <p v-if="error" class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+
+        <button type="submit" class="btn-primary w-full" :disabled="loading">
+          <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+          {{ loading ? 'Memeriksa…' : 'Masuk' }}
+        </button>
+      </form>
+
       <p class="mt-5 text-center text-xs text-gray-400">
-        Lupa PIN? Hubungi admin.
+        {{ mode === 'admin' ? 'Gunakan akun megakomsel.com (Central).' : 'Lupa PIN? Hubungi admin.' }}
       </p>
     </div>
   </div>
@@ -60,8 +119,11 @@ definePageMeta({ layout: 'default', middleware: 'guard' })
 const route = useRoute()
 const auth = useAuthStore()
 
+const mode = ref<'employee' | 'admin'>('employee')
 const name = ref('')
 const pin = ref('')
+const email = ref('')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
@@ -72,7 +134,7 @@ onMounted(() => {
   }
 })
 
-async function submit() {
+async function submitEmployee() {
   error.value = ''
   loading.value = true
   try {
@@ -80,6 +142,19 @@ async function submit() {
     await navigateTo('/clock')
   } catch (e: any) {
     error.value = e?.data?.message || 'Nama atau PIN salah.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function submitAdmin() {
+  error.value = ''
+  loading.value = true
+  try {
+    await auth.loginAdmin(email.value.trim(), password.value)
+    await navigateTo('/admin/employees')
+  } catch (e: any) {
+    error.value = e?.data?.message || 'Email atau password salah.'
   } finally {
     loading.value = false
   }

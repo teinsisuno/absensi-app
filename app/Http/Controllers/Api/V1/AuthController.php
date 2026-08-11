@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\AdminAuthService;
 use App\Services\EmployeeAuthService;
 use App\Services\SsoService;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly SsoService $sso,
+        private readonly AdminAuthService $adminAuth,
         private readonly EmployeeAuthService $employeeAuth,
     ) {
     }
@@ -29,6 +31,30 @@ class AuthController extends Controller
 
         try {
             $result = $this->sso->loginWithToken($validated['token']);
+
+            return response()->json([
+                'token' => $result['token'],
+                'user' => $result['user']->only(['id', 'name', 'email', 'role']),
+                'tenant' => tenant('id'),
+            ]);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 401);
+        }
+    }
+
+    /**
+     * POST /api/v1/auth/admin-login — login biasa owner/admin langsung dari subdomain tenant.
+     * Kredensial = akun Central (email + password), divalidasi server-to-server.
+     */
+    public function adminLogin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        try {
+            $result = $this->adminAuth->attemptLogin($validated['email'], $validated['password']);
 
             return response()->json([
                 'token' => $result['token'],
