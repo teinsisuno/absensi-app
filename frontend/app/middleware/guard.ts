@@ -11,8 +11,9 @@ export default defineNuxtRouteMiddleware((to) => {
   const isAdminRoute = to.path.startsWith('/admin')
 
   if (!auth.isLoggedIn) {
-    // Kalau ada token SSO di query, biarkan /sso menanganinya
-    if (to.path !== '/sso' && !(to.path === '/login' && to.query.token)) {
+    // Halaman publik tanpa login: /sso (handler token Central) dan /login (PIN karyawan)
+    const isPublicPage = to.path === '/sso' || to.path === '/login'
+    if (!isPublicPage) {
       return navigateTo(isAdminRoute ? '/sso' : '/login')
     }
     return
@@ -27,7 +28,7 @@ export default defineNuxtRouteMiddleware((to) => {
     return navigateTo(auth.isAdmin ? '/admin/employees' : '/clock')
   }
 
-  if (to.path === '/clock' && auth.isAdmin && !auth.isEmployee) {
-    // Admin bisa buka /clock juga (kalau admin = karyawan) — biarkan
+  if (to.path === '/sso' && auth.isLoggedIn) {
+    return navigateTo(auth.isAdmin ? '/admin/employees' : '/clock')
   }
 })
