@@ -96,7 +96,35 @@ Layout: admin pages butuh guard role (user.role owner/admin); `/clock` guard tok
 - PWA offline queue = Sprint 3 (FR-009) — jangan dikerjain dulu, fokus halaman inti.
 - JANGAN ikutkan `public/hot` ke image produksi (sudah di .dockerignore — jangan diubah).
 
-## 7. Optional Enhancement (kecil, backend)
+## 7. Status — Frontend MVP DIBANGUN (2026-08-12)
+
+Frontend Nuxt4 MVP **SELESAI dibangun & build pass** (`npm run generate`, 9 routes, PWA `generateSW` 48 entries).
+
+- **Mode**: SPA (`ssr: false`) — hasil generate `.output/public` = index.html + assets, bisa di-serve dari `public/` Laravel (1 origin, auth di localStorage).
+- **Struktur** (di `frontend/`):
+  - `nuxt.config.ts` — modules Tailwind/PWA/Pinia, `runtimeConfig.public.apiBase` (default `/api/v1`), nitro devProxy `/api/v1` → `API_PROXY_TARGET` (default `http://tokoa-absensi.test`), PWA manifest + icons.
+  - `app/stores/auth.ts` — Pinia: token + user (admin) / employee (karyawan), persist localStorage, `loginSso`, `loginEmployee`, `logout`.
+  - `app/composables/api.ts` — `useApi` (useFetch + Bearer) & `api()` ($fetch) + `errorMessage`.
+  - `app/middleware/guard.ts` — client-side guard: belum login → /login|/sso, karyawan → dilarang /admin, sudah login → redirect dari /login.
+  - `app/layouts/` — `default` (auth pages), `admin` (sidebar), `clock` (mobile header jam + logout).
+  - `app/pages/` — `sso.vue`, `login.vue`, `clock.vue`, `admin/index.vue` (redirect), `admin/employees.vue`, `admin/locations.vue`.
+  - `app/components/AppModal.vue` — modal reusable (form + PIN sekali tampil).
+  - `scripts/gen-icons.py` — generate PNG icons 192/512 (stdlib, tanpa PIL).
+- **Catatan field Attendance** (dipakai /clock): 1 baris = 1 event (`type: clock_in|clock_out`), `recorded_at`, `distance_meter`, `work_location`. Sesi aktif = event terakhir `clock_in`.
+- **Belum dikerjakan (Sprint 3)**: upload selfie, PWA offline queue, rekap/laporan, shift management, `employee-names` endpoint.
+
+## 8. Cara Pakai
+
+```bash
+cd frontend
+npm run dev                    # dev :3000, proxy /api/v1 → tokoa-absensi.test
+API_PROXY_TARGET=http://x-absensi.test npm run dev   # ganti target tenant
+npm run generate               # build statis → .output/public
+```
+
+Integrasi produksi (1 origin): copy hasil build ke `public/` Laravel (jangan timpa `index.php`, tambahkan `index.html` + folder `_nuxt/`, `sw.js`, `icons/`, `manifest.webmanifest`). Apache default DirectoryIndex serve index.html dulu.
+
+## 9. Optional Enhancement (kecil, backend)
 
 Login karyawan lebih enak pakai nama dari list (shared device): tambah endpoint publik
 `GET /api/v1/auth/employee-names` → `{ data: [{ id, name }] }` (hanya karyawan active, tanpa PIN).
