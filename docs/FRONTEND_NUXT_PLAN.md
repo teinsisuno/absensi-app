@@ -113,16 +113,22 @@ Frontend Nuxt4 MVP **SELESAI dibangun & build pass** (`npm run generate`, 9 rout
 - **Catatan field Attendance** (dipakai /clock): 1 baris = 1 event (`type: clock_in|clock_out`), `recorded_at`, `distance_meter`, `work_location`. Sesi aktif = event terakhir `clock_in`.
 - **Belum dikerjakan (Sprint 3)**: upload selfie, PWA offline queue, rekap/laporan, shift management, `employee-names` endpoint.
 
-## 8. Cara Pakai
+## 8. Cara Pakai (dev — sudah TERVERIFIKASI 2026-08-12)
 
 ```bash
-cd frontend
-npm run dev                    # dev :3000, proxy /api/v1 → tokoa-absensi.test:8000 (artisan serve)
-API_PROXY_TARGET=http://x-absensi.test:8000 npm run dev   # ganti target tenant
-npm run generate               # build statis → .output/public
+# Terminal 1 — backend
+cd H:\laragon\www\absensi-app
+php artisan serve --host=127.0.0.1 --port=8000
+
+# Terminal 2 — frontend
+cd H:\laragon\www\absensi-app\frontend
+npm run dev                    # buka http://localhost:3000
 ```
 
-⚠️ Proxy target harus pakai **port 8000** (artisan serve) — `http://tokoa-absensi.test` tanpa port nyasar ke Apache Laragon port 80 → login gagal "Nama atau PIN salah". Kalau ganti `nuxt.config.ts`, **restart** `npm run dev` (config tidak di-HMR).
+- Frontend fetch LANGSUNG ke `http://tokoa-absensi.test:8000/api/v1` (tanpa proxy — nitro devProxy rewrite path bikin 404 semua). CORS backend allow-all + Bearer token. Prod: same-origin `/api/v1` (set `NUXT_PUBLIC_API_BASE` saat build / otomatis NODE_ENV=production).
+- **Kredensial tes**: Nama `Test Karyawan`, PIN `123456` (tenant `tokoa`, DB `tenant_absensi_tokoa`, lokasi "Kantor Test" radius 100 km).
+- **Sebelum `php artisan test`**: WAJIB drop tenant `tokoa` dulu (`tenancy()->end(); Tenant::find('tokoa')?->delete()`), karena test suite membuat tenant slug `tokoa` sendiri → kalau sudah ada, test gagal "already exists". Setelah test, re-provision manual lagi.
+- ⚠️ Jangan pakai `EnsureFrontendRequestsAreStateful` (Sanctum) di grup api — Origin localhost:3000 → CSRF 419. Sudah dihapus dari `bootstrap/app.php`.
 
 Integrasi produksi (1 origin): copy hasil build ke `public/` Laravel (jangan timpa `index.php`, tambahkan `index.html` + folder `_nuxt/`, `sw.js`, `icons/`, `manifest.webmanifest`). Apache default DirectoryIndex serve index.html dulu.
 
