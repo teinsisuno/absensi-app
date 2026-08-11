@@ -117,10 +117,12 @@ Frontend Nuxt4 MVP **SELESAI dibangun & build pass** (`npm run generate`, 9 rout
 
 ```bash
 cd frontend
-npm run dev                    # dev :3000, proxy /api/v1 → tokoa-absensi.test
-API_PROXY_TARGET=http://x-absensi.test npm run dev   # ganti target tenant
+npm run dev                    # dev :3000, proxy /api/v1 → tokoa-absensi.test:8000 (artisan serve)
+API_PROXY_TARGET=http://x-absensi.test:8000 npm run dev   # ganti target tenant
 npm run generate               # build statis → .output/public
 ```
+
+⚠️ Proxy target harus pakai **port 8000** (artisan serve) — `http://tokoa-absensi.test` tanpa port nyasar ke Apache Laragon port 80 → login gagal "Nama atau PIN salah". Kalau ganti `nuxt.config.ts`, **restart** `npm run dev` (config tidak di-HMR).
 
 Integrasi produksi (1 origin): copy hasil build ke `public/` Laravel (jangan timpa `index.php`, tambahkan `index.html` + folder `_nuxt/`, `sw.js`, `icons/`, `manifest.webmanifest`). Apache default DirectoryIndex serve index.html dulu.
 

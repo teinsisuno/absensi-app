@@ -28,9 +28,10 @@ export default defineNuxtConfig({
   nitro: {
     devProxy: {
       // Saat `npm run dev` (port 3000), request /api/v1 diteruskan ke backend tenant.
-      // Ganti API_PROXY_TARGET sesuai vhost tenant yang mau dites.
+      // Target pakai PORT 8000 (artisan serve) — jangan port 80 (Apache Laragon).
+      // Host tokoa-absensi.test dipertahankan → tenancy resolve tenant dengan benar.
       '/api/v1': {
-        target: process.env.API_PROXY_TARGET || 'http://tokoa-absensi.test',
+        target: process.env.API_PROXY_TARGET || 'http://tokoa-absensi.test:8000',
         changeOrigin: true,
       },
     },
