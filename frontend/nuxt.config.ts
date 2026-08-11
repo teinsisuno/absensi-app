@@ -20,20 +20,12 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      // Base URL API tenant. Prod: same origin → /api/v1 (di-serve Laravel).
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || '/api/v1',
-    },
-  },
-
-  nitro: {
-    devProxy: {
-      // Saat `npm run dev` (port 3000), request /api/v1 diteruskan ke backend tenant.
-      // Target pakai PORT 8000 (artisan serve) — jangan port 80 (Apache Laragon).
-      // Host tokoa-absensi.test dipertahankan → tenancy resolve tenant dengan benar.
-      '/api/v1': {
-        target: process.env.API_PROXY_TARGET || 'http://tokoa-absensi.test:8000',
-        changeOrigin: true,
-      },
+      // Base URL API tenant.
+      // Dev: langsung ke artisan serve (CORS Laravel default allow-all + Bearer token, tanpa cookie).
+      // Prod (same origin): /api/v1 — di-serve Laravel, set NUXT_PUBLIC_API_BASE saat build.
+      apiBase:
+        process.env.NUXT_PUBLIC_API_BASE ||
+        (process.env.NODE_ENV === 'production' ? '/api/v1' : 'http://tokoa-absensi.test:8000/api/v1'),
     },
   },
 

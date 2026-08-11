@@ -13,9 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
+        // Catatan: TIDAK pakai EnsureFrontendRequestsAreStateful (Sanctum) di grup api.
+        // Frontend Nuxt login via Bearer token (Authorization header), bukan cookie session.
+        // Sanctum stateful malah bikin request dengan Origin localhost:3000 dianggap SPA →
+        // CSRF 419. CORS default allow-all + Bearer token cukup untuk arsitektur ini.
 
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
