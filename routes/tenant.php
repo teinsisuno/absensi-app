@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\EmployeeController;
+use App\Http\Controllers\Api\V1\WorkLocationController;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
@@ -39,5 +42,19 @@ Route::middleware([
     // Auth terproteksi
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+    });
+
+    // Admin (owner/admin SSO) — kelola karyawan, PIN, lokasi kerja
+    Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+        Route::apiResource('/employees', EmployeeController::class)->except(['show']);
+        Route::post('/employees/{employee}/reset-pin', [EmployeeController::class, 'resetPin']);
+        Route::apiResource('/work-locations', WorkLocationController::class)->except(['show']);
+    });
+
+    // Karyawan (login PIN) — absen & riwayat sendiri
+    Route::middleware(['auth:sanctum', 'employee'])->group(function () {
+        Route::post('/attendance/clock-in', [AttendanceController::class, 'clockIn']);
+        Route::post('/attendance/clock-out', [AttendanceController::class, 'clockOut']);
+        Route::get('/attendance/me', [AttendanceController::class, 'me']);
     });
 });

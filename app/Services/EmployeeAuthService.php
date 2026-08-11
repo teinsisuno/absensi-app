@@ -43,11 +43,34 @@ class EmployeeAuthService
     }
 
     /**
-     * Generate PIN baru (4-6 digit) & simpan hash-nya. Return PIN plain (hanya ditampilkan ke admin).
+     * Generate PIN unik (6 digit) yang tidak dipakai karyawan aktif lain.
+     * Cek unik via Hash::check ke semua karyawan aktif (jumlah kecil — aman untuk MVP).
+     */
+    public function generateUniquePin(?int $excludeId = null): string
+    {
+        for ($i = 0; $i < 50; $i++) {
+            $pin = (string) random_int(100000, 999999);
+
+            $taken = Employee::query()
+                ->where('status', 'active')
+                ->when($excludeId !== null, fn ($q) => $q->where('id', '!=', $excludeId))
+                ->get()
+                ->contains(fn (Employee $employee) => Hash::check($pin, $employee->pin_hash));
+
+            if (! $taken) {
+                return $pin;
+            }
+        }
+
+        throw new \RuntimeException('Gagal generate PIN unik — coba lagi.');
+    }
+
+    /**
+     * Generate PIN baru (unik) & simpan hash-nya. Return PIN plain (hanya ditampilkan ke admin).
      */
     public function resetPin(Employee $employee): string
     {
-        $pin = (string) random_int(1000, 999999);
+        $pin = $this->generateUniquePin($employee->id);
         $employee->update(['pin_hash' => Hash::make($pin)]);
 
         return $pin;
