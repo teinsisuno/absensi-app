@@ -84,4 +84,89 @@ class LeaveRequestController extends Controller
     {
         return $request->user()->employee;
     }
+
+    /**
+     * GET /api/v1/leave-requests — HR: semua pengajuan (filter ?status=pending|approved|rejected|cancelled).
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['nullable', 'in:pending,approved,rejected,cancelled'],
+        ]);
+
+        $requests = LeaveRequest::with(['employee:id,name,position', 'approver:id,name'])
+            ->when($validated['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json(['data' => $requests]);
+    }
+
+    /**
+     * POST /api/v1/leave-requests/{id}/approve — HR menyetujui pengajuan.
+     */
+    public function approve(Request $request, LeaveRequest $leaveRequest): JsonResponse
+    {
+        if ($leaveRequest->status !== 'pending') {
+            return response()->json(['message' => 'Hanya pengajuan berstatus pending yang bisa diproses.'], 422);
+        }
+
+        $leaveRequest->update([
+            'status' => 'approved',
+            'approved_by' => $request->user()->id,
+            'approved_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Pengajuan disetujui.',
+            'data' => $leaveRequest->fresh(['employee:id,name,position', 'approver:id,name']),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/leave-requests/{id}/reject — HR menolak pengajuan (catatan wajib).
+     */
+    public function reject(Request $request, LeaveRequest $leaveRequest): JsonResponse
+    {
+        $validated = $request->validate([
+            'notes' => ['required', 'string', 'max:1000'],
+        ]);
+
+        if ($leaveRequest->status !== 'pending') {
+            return response()->json(['message' => 'Hanya pengajuan berstatus pending yang bisa diproses.'], 422);
+        }
+
+        $leaveRequest->update([
+            'status' => 'rejected',
+            'approved_by' => $request->user()->id,
+            'approved_at' => now(),
+            'approval_notes' => $validated['notes'],
+        ]);
+
+        return response()->json([
+            'message' => 'Pengajuan ditolak.',
+            'data' => $leaveRequest->fresh(['employee:id,name,position', 'approver:id,name']),
+        ]);
+    }
+
+    /**
+     * GET /api/v1/leave-requests/stats — ringkasan pengajuan untuk widget HR.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        $pending = LeaveRequest::where('status', 'pending')->count();
+        $approved = LeaveRequest::where('status', 'approved')->count();
+        $rejected = LeaveRequest::where('status', 'rejected')->count();
+        $cancelled = LeaveRequest::where('status', 'cancelled')->count();
+
+        return response()->json([
+            'data' => [
+                'pending' => $pending,
+                'approved' => $approved,
+                'rejected' => $rejected,
+                'cancelled' => $cancelled,
+                'total' => $pending + $approved + $rejected + $cancelled,
+            ],
+        ]);
+    }
 }

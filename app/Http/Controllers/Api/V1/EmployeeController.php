@@ -28,6 +28,21 @@ class EmployeeController extends Controller
     }
 
     /**
+     * GET /api/v1/employees/{id} — detail karyawan + submodules.
+     * Eager load: detail, banks, documents, families, contracts, faceTemplate, groups, workLocation, shift.
+     */
+    public function show(Employee $employee): JsonResponse
+    {
+        $employee->load([
+            'detail', 'banks', 'documents', 'families', 'contracts',
+            'faceTemplate', 'groups', 'workLocation', 'shift',
+            'user:id,name,email',
+        ]);
+
+        return response()->json(['data' => $employee]);
+    }
+
+    /**
      * POST /api/v1/employees — tambah karyawan (data kepegawaian).
      * Link ke akun user dilakukan via kode unik, bukan di sini.
      */

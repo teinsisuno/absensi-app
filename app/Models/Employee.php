@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,6 +54,21 @@ class Employee extends Model
     public function leaveRequests(): HasMany
     {
         return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function overtimeRequests(): HasMany
+    {
+        return $this->hasMany(OvertimeRequest::class);
+    }
+
+    public function visits(): HasMany
+    {
+        return $this->hasMany(Visit::class);
+    }
+
+    public function assignedTasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'assignee_id');
     }
 
     public function inviteCodes(): HasMany

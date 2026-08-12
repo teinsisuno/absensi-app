@@ -49,6 +49,32 @@
         </div>
       </div>
 
+      <!-- Butuh aksi -->
+      <div v-if="pendingTotal > 0" class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-red-700">⚠️ Butuh Aksi</h2>
+          <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">{{ pendingTotal }}</span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <NuxtLink to="/admin/leave-requests?status=pending" class="rounded-lg bg-white px-3 py-2 text-sm text-red-700 shadow-sm hover:bg-red-100">
+            📝 {{ pendingLeave }} pengajuan izin pending
+          </NuxtLink>
+          <NuxtLink to="/admin/overtime-requests?status=pending" class="rounded-lg bg-white px-3 py-2 text-sm text-red-700 shadow-sm hover:bg-red-100">
+            ⏰ {{ pendingOvertime }} pengajuan lembur pending
+          </NuxtLink>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="mb-6">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Aksi Cepat</h2>
+        <div class="flex flex-wrap gap-2">
+          <NuxtLink to="/admin/employees" class="btn-secondary">+ Tambah Karyawan</NuxtLink>
+          <NuxtLink to="/admin/announcements" class="btn-secondary">📢 Buat Pengumuman</NuxtLink>
+          <NuxtLink to="/admin/tasks" class="btn-secondary">✅ Beri Tugas</NuxtLink>
+        </div>
+      </div>
+
       <!-- Menu fasilitas -->
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Fasilitas</h2>
       <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -92,8 +118,20 @@ const menus = [
   { to: '/admin/work-patterns', icon: '⏱️', title: 'Pola Kerja', desc: 'Jam kerja & istirahat' },
   { to: '/admin/shifts', icon: '🕐', title: 'Shift', desc: 'Jadwal jam masuk-pulang' },
   { to: '/admin/schedules', icon: '📋', title: 'Jadwal Karyawan', desc: 'Snapshot jadwal harian' },
+  { to: '/admin/attendance', icon: '📊', title: 'Absensi Karyawan', desc: 'Rekap clock in/out per tanggal' },
+  { to: '/admin/leave-requests', icon: '📝', title: 'Pengajuan Izin', desc: 'Approve izin/cuti/sakit' },
+  { to: '/admin/overtime-requests', icon: '⏰', title: 'Pengajuan Lembur', desc: 'Approve lembur' },
+  { to: '/admin/visits', icon: '📍', title: 'Kunjungan', desc: 'Kunjungan lapangan karyawan' },
+  { to: '/admin/tasks', icon: '✅', title: 'Tugas', desc: 'Task giving & monitoring' },
+  { to: '/admin/announcements', icon: '📢', title: 'Pengumuman', desc: 'Buat & kelola pengumuman' },
+  { to: '/admin/reports', icon: '📈', title: 'Laporan', desc: 'Rekap & grafik kehadiran' },
+  { to: '/admin/settings', icon: '⚙️', title: 'Pengaturan', desc: 'Konfigurasi tenant' },
   { to: '/admin/locations', icon: '📍', title: 'Lokasi Kerja', desc: 'Titik GPS & radius' },
 ]
+
+const pendingLeave = ref(0)
+const pendingOvertime = ref(0)
+const pendingTotal = computed(() => pendingLeave.value + pendingOvertime.value)
 
 onMounted(async () => {
   try {
@@ -101,8 +139,19 @@ onMounted(async () => {
     stats.value = data?.data ?? stats.value
   } catch {
     // biarkan 0
-  } finally {
-    loading.value = false
   }
+  try {
+    const leave = await api<{ data: { pending: number } }>('GET', '/leave-requests/stats')
+    pendingLeave.value = leave.data?.pending ?? 0
+  } catch {
+    pendingLeave.value = 0
+  }
+  try {
+    const overtime = await api<{ data: { pending: number } }>('GET', '/overtime-requests/stats')
+    pendingOvertime.value = overtime.data?.pending ?? 0
+  } catch {
+    pendingOvertime.value = 0
+  }
+  loading.value = false
 })
 </script>

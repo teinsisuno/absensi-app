@@ -71,15 +71,29 @@
           icon="map"
           color="success"
           label="Kunjungan"
-          sub="Lapangan"
-          :disabled="true"
+          sub="Selfie + lokasi"
+          to="/visits"
         />
         <MenuCard
           icon="tasks"
           color="purple"
           label="Tugas"
-          sub="Segera hadir"
-          :disabled="true"
+          sub="Update status"
+          to="/tasks"
+        />
+        <MenuCard
+          icon="clock"
+          color="warning"
+          label="Lembur"
+          sub="Ajukan lembur"
+          to="/overtime-request"
+        />
+        <MenuCard
+          icon="file"
+          color="primary"
+          label="Pengumuman"
+          sub="Info terbaru"
+          to="/announcements"
         />
       </div>
 
@@ -124,8 +138,12 @@
         </div>
       </div>
 
-      <!-- Pengumuman -->
-      <div class="rounded-2xl bg-gradient-to-r from-primary-600 to-primary-800 p-5 text-white shadow-lg shadow-primary-600/20">
+      <!-- Pengumuman terbaru -->
+      <button
+        type="button"
+        class="w-full rounded-2xl bg-gradient-to-r from-primary-600 to-primary-800 p-5 text-left text-white shadow-lg shadow-primary-600/20 transition active:scale-[0.99]"
+        @click="navigateTo('/announcements')"
+      >
         <div class="flex items-start gap-3">
           <div class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
@@ -134,11 +152,13 @@
           </div>
           <div>
             <p class="mb-1 text-[10px] font-medium uppercase tracking-wider text-primary-200">Pengumuman</p>
-            <h4 class="text-sm font-bold leading-snug">Belum ada pengumuman</h4>
-            <p class="mt-1 text-xs text-white/70">Pengumuman dari HR akan tampil di sini.</p>
+            <h4 v-if="latestAnnouncement" class="text-sm font-bold leading-snug">{{ latestAnnouncement.title }}</h4>
+            <h4 v-else class="text-sm font-bold leading-snug">Belum ada pengumuman</h4>
+            <p v-if="latestAnnouncement" class="mt-1 line-clamp-2 text-xs text-white/70">{{ latestAnnouncement.body }}</p>
+            <p v-else class="mt-1 text-xs text-white/70">Pengumuman dari HR akan tampil di sini.</p>
           </div>
         </div>
-      </div>
+      </button>
     </div>
 
     <!-- Modal pilih aksi absensi -->
@@ -162,6 +182,16 @@ const greeting = computed(() => {
 const dateStr = computed(() => new Date().toISOString().slice(0, 10))
 const { data, pending: historyLoading } = useApi<{ data: any[] }>(() => `/attendance/me?date=${dateStr.value}`)
 const todayRecords = computed(() => data.value?.data || [])
+
+const latestAnnouncement = ref<any>(null)
+onMounted(async () => {
+  try {
+    const res = await api<{ data: any[] }>('GET', '/announcements/latest')
+    latestAnnouncement.value = res.data?.[0] || null
+  } catch {
+    latestAnnouncement.value = null
+  }
+})
 
 const todayClockIn = computed(() => {
   const r = todayRecords.value.find((x) => x.type === 'clock_in')
@@ -189,8 +219,7 @@ function openAbsenModal() {
 }
 
 /** Riwayat hari ini → tampilkan sebagai satu baris (kalau sudah ada absen). */
-const recentHistory = computed(() => {
-  const rec = todayRecords.value
+const recentHistory = computed(() => {  const rec = todayRecords.value
   if (rec.length === 0) return []
   const first = rec[rec.length - 1] // clock_in (paling lama)
   const last = rec[0] // clock_out (terbaru) kalau ada

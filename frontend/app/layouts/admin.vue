@@ -65,11 +65,60 @@
           <span>📋</span> Jadwal Karyawan
         </NuxtLink>
         <NuxtLink
-          to="/admin/locations"
+          to="/admin/attendance"
           class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
           active-class="bg-gray-800 text-white"
         >
-          <span>📍</span> Lokasi Kerja
+          <span>📊</span> Absensi Karyawan
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/leave-requests"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>📝</span> Pengajuan Izin
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/overtime-requests"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>⏰</span> Pengajuan Lembur
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/visits"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>📍</span> Kunjungan
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/tasks"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>✅</span> Tugas
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/announcements"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>📢</span> Pengumuman
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/reports"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>📈</span> Laporan
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/settings"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>⚙️</span> Pengaturan
         </NuxtLink>
       </nav>
       <div class="border-t border-gray-800 p-4">

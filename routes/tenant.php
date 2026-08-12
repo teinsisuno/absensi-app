@@ -2,20 +2,28 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\AdminAttendanceController;
 use App\Http\Controllers\Api\V1\AdminDashboardController;
+use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\EmployeeGroupController;
+use App\Http\Controllers\Api\V1\FaceController;
 use App\Http\Controllers\Api\V1\HolidayController;
 use App\Http\Controllers\Api\V1\InviteCodeController;
 use App\Http\Controllers\Api\V1\LeaveRequestController;
+use App\Http\Controllers\Api\V1\OvertimeRequestController;
+use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ScheduleSnapshotController;
+use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\ShiftController;
-use App\Http\Controllers\Api\V1\WorkLocationController;
-use App\Http\Controllers\Api\V1\WorkingCalendarController;
-use App\Http\Controllers\Api\V1\WorkPatternController;
+use App\Http\Controllers\Api\V1\TaskController;
+use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\WebauthnController;
+use App\Http\Controllers\Api\V1\WorkingCalendarController;
+use App\Http\Controllers\Api\V1\WorkLocationController;
+use App\Http\Controllers\Api\V1\WorkPatternController;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
@@ -72,7 +80,7 @@ Route::middleware([
 
     // Admin (superadmin/HR) — kelola karyawan, kode unik, lokasi kerja
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
-        Route::apiResource('/employees', EmployeeController::class)->except(['show']);
+        Route::apiResource('/employees', EmployeeController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
         Route::apiResource('/invite-codes', InviteCodeController::class)->only(['index', 'store']);
         Route::apiResource('/work-locations', WorkLocationController::class)->except(['show']);
 
@@ -93,6 +101,49 @@ Route::middleware([
 
         // Jadwal (snapshot per karyawan per tanggal)
         Route::apiResource('/schedule-snapshots', ScheduleSnapshotController::class)->only(['index', 'store', 'update', 'destroy']);
+
+        // Rekap absensi karyawan (roster per tanggal + detail harian)
+        Route::get('/attendance/roster', [AdminAttendanceController::class, 'roster']);
+        Route::get('/attendance/roster/{employee}', [AdminAttendanceController::class, 'detail']);
+        Route::get('/attendance/export', [AdminAttendanceController::class, 'export']);
+
+        // Approval pengajuan izin/cuti/sakit (HR)
+        Route::get('/leave-requests', [LeaveRequestController::class, 'index']);
+        Route::get('/leave-requests/stats', [LeaveRequestController::class, 'stats']);
+        Route::post('/leave-requests/{leaveRequest}/approve', [LeaveRequestController::class, 'approve']);
+        Route::post('/leave-requests/{leaveRequest}/reject', [LeaveRequestController::class, 'reject']);
+
+        // Overtime management (HR)
+        Route::get('/overtime-requests', [OvertimeRequestController::class, 'index']);
+        Route::get('/overtime-requests/stats', [OvertimeRequestController::class, 'stats']);
+        Route::post('/overtime-requests/{overtimeRequest}/approve', [OvertimeRequestController::class, 'approve']);
+        Route::post('/overtime-requests/{overtimeRequest}/reject', [OvertimeRequestController::class, 'reject']);
+
+        // Kunjungan lapangan (admin lihat semua)
+        Route::get('/visits', [VisitController::class, 'index']);
+        Route::get('/visits/{visit}', [VisitController::class, 'show'])->whereNumber('visit');
+
+        // Tugas (admin: kelola semua)
+        Route::get('/tasks', [TaskController::class, 'index']);
+        Route::post('/tasks', [TaskController::class, 'store']);
+        Route::put('/tasks/{task}', [TaskController::class, 'update']);
+        Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+
+        // Pengumuman (admin: kelola semua termasuk draft)
+        Route::post('/announcements', [AnnouncementController::class, 'store']);
+        Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
+        Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+
+        // Pengaturan tenant
+        Route::get('/settings', [SettingsController::class, 'index']);
+        Route::put('/settings', [SettingsController::class, 'update']);
+    });
+
+    // Pengumuman — semua user login (bukan cuma admin) boleh baca yang sudah publish
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/announcements', [AnnouncementController::class, 'index']);
+        Route::get('/announcements/latest', [AnnouncementController::class, 'latest']);
+        Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show']);
     });
 
     // Karyawan (user ter-link) — absen, riwayat, pengajuan, jadwal sendiri
@@ -105,6 +156,29 @@ Route::middleware([
         Route::get('/leave-requests/me', [LeaveRequestController::class, 'myRequests']);
         Route::post('/leave-requests', [LeaveRequestController::class, 'store']);
         Route::post('/leave-requests/{leaveRequest}/cancel', [LeaveRequestController::class, 'cancel']);
+
+        // Overtime karyawan
+        Route::get('/overtime-requests/me', [OvertimeRequestController::class, 'myRequests']);
+        Route::post('/overtime-requests', [OvertimeRequestController::class, 'store']);
+        Route::post('/overtime-requests/{overtimeRequest}/cancel', [OvertimeRequestController::class, 'cancel']);
+
+        // Kunjungan lapangan (karyawan)
+        Route::get('/visits/me', [VisitController::class, 'myVisits']);
+        Route::post('/visits', [VisitController::class, 'store']);
+
+        // Tugas (karyawan: lihat & update status)
+        Route::get('/tasks/me', [TaskController::class, 'myTasks']);
+        Route::put('/tasks/{task}/status', [TaskController::class, 'updateStatus']);
+
+        // Profil & dokumen karyawan
+        Route::get('/me', [ProfileController::class, 'me']);
+        Route::put('/me', [ProfileController::class, 'updateProfile']);
+        Route::get('/me/documents', [ProfileController::class, 'documents']);
+
+        // Face recognition (enroll/verify/status)
+        Route::post('/face/enroll', [FaceController::class, 'enroll']);
+        Route::post('/face/verify', [FaceController::class, 'verify']);
+        Route::get('/face/status', [FaceController::class, 'status']);
 
         // Jadwal sendiri (calendar PWA)
         Route::get('/schedule-snapshots/me', [ScheduleSnapshotController::class, 'mySchedule']);

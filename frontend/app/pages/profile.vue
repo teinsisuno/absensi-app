@@ -33,10 +33,46 @@
       <!-- Info -->
       <div class="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
         <InfoRow icon="id" label="ID Karyawan" :value="auth.employee?.id ? '#' + auth.employee.id : '—'" />
-        <InfoRow icon="mail" label="Email" :value="auth.user?.email || '—'" />
-        <InfoRow icon="phone" label="Telepon" :value="auth.employee?.phone || '—'" />
+        <InfoRow icon="mail" label="Email" :value="me?.email || auth.user?.email || '—'" />
+        <InfoRow icon="phone" label="Telepon" :value="me?.detail?.phone || '—'" />
         <InfoRow icon="shift" label="Role" :value="roleLabel" />
+        <InfoRow icon="shift" label="Lokasi Kerja" :value="me?.work_location?.name || '—'" />
+        <InfoRow icon="shift" label="Shift" :value="me?.shift?.name || '—'" />
+        <InfoRow icon="id" label="Supervisor" :value="me?.supervisor?.name || '—'" />
       </div>
+
+      <!-- Data pribadi (dari GET /me) -->
+      <template v-if="me?.detail && Object.values(me.detail).some((v: any) => v !== null)">
+        <h3 class="mb-3 px-1 font-bold text-gray-800">Data Pribadi</h3>
+        <div class="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <InfoRow icon="id" label="NIK" :value="me.detail.nik || '—'" />
+          <InfoRow icon="id" label="Gender" :value="genderLabel(me.detail.gender)" />
+          <InfoRow icon="shift" label="Tempat Lahir" :value="me.detail.place_of_birth || '—'" />
+          <InfoRow icon="shift" label="Tanggal Lahir" :value="formatDate(me.detail.date_of_birth)" />
+          <InfoRow icon="id" label="Agama" :value="me.detail.religion || '—'" />
+          <InfoRow icon="id" label="Status" :value="me.detail.marital_status || '—'" />
+          <InfoRow icon="shift" label="Alamat" :value="me.detail.address || '—'" />
+        </div>
+      </template>
+
+      <!-- Dokumen -->
+      <template v-if="documents.length > 0">
+        <h3 class="mb-3 px-1 font-bold text-gray-800">Dokumen</h3>
+        <div class="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <button
+            v-for="doc in documents"
+            :key="doc.id"
+            type="button"
+            class="flex w-full items-center gap-3 border-b border-gray-100 p-4 text-left transition last:border-b-0 hover:bg-gray-50"
+          >
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600">📄</div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-gray-800">{{ doc.title }}</p>
+              <p class="text-xs text-gray-400">{{ doc.document_type }} · {{ doc.document_number || '—' }}</p>
+            </div>
+          </button>
+        </div>
+      </template>
 
       <!-- Pengaturan -->
       <h3 class="mb-3 px-1 font-bold text-gray-800">Pengaturan</h3>
@@ -145,6 +181,8 @@ const auth = useAuthStore()
 const showBioSetup = ref(false)
 const bioBusy = ref(false)
 const bioKeys = ref<{ id: number; name: string; created_at: string }[]>([])
+const me = ref<any>(null)
+const documents = ref<any[]>([])
 
 const roleLabel = computed(() => {
   if (auth.employee?.mobile_role) return auth.employee.mobile_role
@@ -159,6 +197,18 @@ const bioStatusText = computed(() => {
 
 /** Muat daftar kunci biometrik saat halaman dibuka. */
 onMounted(async () => {
+  try {
+    const res = await api<{ data: any }>('GET', '/me')
+    me.value = res.data
+  } catch {
+    me.value = null
+  }
+  try {
+    const res = await api<{ data: any[] }>('GET', '/me/documents')
+    documents.value = res.data
+  } catch {
+    documents.value = []
+  }
   if (!(await isBiometricAvailable())) return
   try {
     const { data } = await auth.webauthnKeys()
@@ -167,6 +217,15 @@ onMounted(async () => {
     // abaikan — perangkat tanpa dukungan
   }
 })
+
+function genderLabel(g: string | undefined) {
+  return g === 'L' ? 'Laki-laki' : g === 'P' ? 'Perempuan' : '—'
+}
+
+function formatDate(d: string | undefined) {
+  if (!d) return '—'
+  return new Date(d + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+}
 
 /** Aktifkan kalau belum ada key; nonaktifkan kalau sudah ada. */
 async function toggleBiometric() {

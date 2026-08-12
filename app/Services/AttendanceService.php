@@ -53,6 +53,9 @@ class AttendanceService
             'longitude' => $data['longitude'],
             'distance_meter' => round($distance, 2),
             'selfie_photo' => $data['selfie_photo'] ?? null,
+            'face_verified' => $data['face_verified'] ?? false,
+            'face_mode' => $data['face_mode'] ?? null,
+            'face_confidence' => $data['face_confidence'] ?? null,
             'status' => 'valid',
         ]);
     }
@@ -85,6 +88,9 @@ class AttendanceService
             'longitude' => $data['longitude'],
             'distance_meter' => round($distance, 2),
             'selfie_photo' => $data['selfie_photo'] ?? null,
+            'face_verified' => $data['face_verified'] ?? false,
+            'face_mode' => $data['face_mode'] ?? null,
+            'face_confidence' => $data['face_confidence'] ?? null,
             'status' => 'valid',
         ]);
     }
