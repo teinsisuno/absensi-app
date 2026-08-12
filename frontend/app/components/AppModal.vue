@@ -2,7 +2,10 @@
   <Teleport to="body">
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div class="absolute inset-0 bg-gray-900/50" @click="$emit('close')" />
-      <div class="relative w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+      <div
+        class="relative w-full rounded-xl bg-white p-6 shadow-2xl"
+        :class="wide ? 'max-w-2xl' : 'max-w-md'"
+      >
         <div class="mb-4 flex items-center justify-between">
           <h2 class="text-base font-semibold text-gray-900">{{ title }}</h2>
           <button
@@ -21,6 +24,6 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ title: string }>()
+defineProps<{ title: string; wide?: boolean }>()
 defineEmits<{ close: [] }>()
 </script>

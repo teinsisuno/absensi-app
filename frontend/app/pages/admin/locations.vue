@@ -50,7 +50,7 @@
     </div>
 
     <!-- Modal form -->
-    <AppModal v-if="modal.open" :title="modal.mode === 'create' ? 'Tambah Lokasi' : 'Edit Lokasi'" @close="modal.open = false">
+    <AppModal v-if="modal.open" :title="modal.mode === 'create' ? 'Tambah Lokasi' : 'Edit Lokasi'" wide @close="modal.open = false">
       <form @submit.prevent="submitForm">
         <div class="mb-4">
           <label class="label">Nama <span class="text-red-500">*</span></label>
@@ -69,7 +69,7 @@
         </div>
         <button
           type="button"
-          class="mb-4 inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200"
+          class="mb-2 inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200"
           :disabled="locating"
           @click="useMyLocation"
         >
@@ -77,6 +77,13 @@
           <span v-else>📍</span>
           {{ locating ? 'Mencari…' : 'Ambil dari lokasi saya' }}
         </button>
+
+        <div class="relative z-0 mb-4 h-56 overflow-hidden rounded-lg border border-gray-200">
+          <div ref="mapEl" class="h-full w-full"></div>
+          <p class="pointer-events-none absolute bottom-1 left-2 rounded bg-white/80 px-1.5 text-[10px] text-gray-600">
+            Klik peta untuk pilih titik
+          </p>
+        </div>
 
         <div class="mb-4">
           <label class="label">Radius (meter)</label>
@@ -103,6 +110,8 @@
 </template>
 
 <script setup lang="ts">
+import 'leaflet/dist/leaflet.css'
+
 definePageMeta({ layout: 'admin', middleware: 'guard' })
 
 interface WorkLocation {
@@ -132,6 +141,81 @@ const form = reactive({
 const formError = ref('')
 const saving = ref(false)
 const locating = ref(false)
+
+// --- Leaflet map (klik peta → set titik) ---
+const mapEl = ref<HTMLDivElement | null>(null)
+let leaflet: any = null
+let map: any = null
+let marker: any = null
+
+function pinIcon(L: any) {
+  return L.divIcon({
+    className: '',
+    html: `
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="#0f766e" stroke="#ffffff" stroke-width="1.5" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4))">
+        <path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/>
+        <circle cx="12" cy="10" r="2.6" fill="#ffffff" stroke="none"/>
+      </svg>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 32],
+  })
+}
+
+function syncMapToForm() {
+  if (!map || !leaflet) return
+  const lat = form.latitude
+  const lng = form.longitude
+  const hasPoint = lat != null && lng != null
+  map.setView(hasPoint ? [lat, lng] : [-2.5, 118], hasPoint ? 17 : 5)
+  if (marker) {
+    marker.remove()
+    marker = null
+  }
+  if (hasPoint) {
+    marker = leaflet.marker([lat, lng], { icon: pinIcon(leaflet) }).addTo(map)
+  }
+}
+
+function setPoint(lat: number, lng: number) {
+  form.latitude = Number(lat.toFixed(7))
+  form.longitude = Number(lng.toFixed(7))
+  syncMapToForm()
+}
+
+async function initMap() {
+  if (import.meta.server) return
+  leaflet = leaflet || (await import('leaflet'))
+  if (!mapEl.value || !leaflet) return
+  if (!map) {
+    map = leaflet.map(mapEl.value)
+    leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(map)
+    map.on('click', (e: any) => {
+      setPoint(e.latlng.lat, e.latlng.lng)
+      map.setView(e.latlng, Math.max(map.getZoom(), 16))
+    })
+  }
+  syncMapToForm()
+  // Modal pakai Teleport — tunggu layout selesai biar tile gak miring
+  setTimeout(() => map?.invalidateSize(), 100)
+}
+
+watch(
+  () => modal.open,
+  (open) => {
+    if (open) {
+      nextTick(() => initMap())
+    }
+  },
+)
+
+onBeforeUnmount(() => {
+  map?.remove()
+  map = null
+  marker = null
+})
 
 function openCreate() {
   modal.mode = 'create'
@@ -209,6 +293,7 @@ function useMyLocation() {
     (pos) => {
       form.latitude = Number(pos.coords.latitude.toFixed(7))
       form.longitude = Number(pos.coords.longitude.toFixed(7))
+      syncMapToForm()
       locating.value = false
     },
     (err) => {
