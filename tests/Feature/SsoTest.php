@@ -34,7 +34,7 @@ class SsoTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('tenant', 'tokoa')
             ->assertJsonPath('user.email', 'budi@tokoa.com')
-            ->assertJsonPath('user.role', 'owner');
+            ->assertJsonPath('user.role', 'superadmin'); // role Central owner → superadmin
 
         $this->assertNotEmpty($response->json('token'));
 
@@ -43,7 +43,7 @@ class SsoTest extends TestCase
         $this->assertDatabaseHas('users', [
             'central_user_id' => 42,
             'email' => 'budi@tokoa.com',
-            'role' => 'owner',
+            'role' => 'superadmin',
         ]);
         tenancy()->end();
     }

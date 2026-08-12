@@ -18,7 +18,8 @@ class AttendanceControllerTest extends TestCase
     private const LNG = 106.816666;
 
     /**
-     * Siapkan tenant + lokasi "Toko Pusat" (radius 100m) + karyawan aktif, return token karyawan.
+     * Siapkan tenant + lokasi "Toko Pusat" (radius 100m) + user ter-link karyawan aktif.
+     * Return token user (mobile).
      */
     private function setupEmployee(string $slug = 'tokoa'): string
     {
@@ -30,14 +31,20 @@ class AttendanceControllerTest extends TestCase
             'radius_meter' => 100,
             'is_active' => true,
         ]);
-        $employee = Employee::create([
+        $user = User::create([
+            'name' => 'Siti',
+            'email' => 'siti@attendance.test',
+            'password_hash' => Hash::make('rahasia123'),
+            'role' => 'employee',
+        ]);
+        Employee::create([
+            'user_id' => $user->id,
             'name' => 'Siti',
             'position' => 'Kasir',
-            'pin_hash' => Hash::make('123456'),
             'work_location_id' => $location->id,
             'status' => 'active',
         ]);
-        $token = $employee->createToken('employee-pin')->plainTextToken;
+        $token = $user->createToken('mobile')->plainTextToken;
         tenancy()->end();
 
         return $token;
@@ -50,7 +57,7 @@ class AttendanceControllerTest extends TestCase
             'central_user_id' => 1,
             'name' => 'Admin',
             'email' => 'admin@tokoa.com',
-            'role' => 'owner',
+            'role' => 'superadmin',
         ]);
         $token = $user->createToken('sso-test')->plainTextToken;
         tenancy()->end();
@@ -173,6 +180,24 @@ class AttendanceControllerTest extends TestCase
         $this->withTenantHost('tokoa');
 
         $this->withToken($this->adminToken('tokoa'))->postJson('/api/v1/attendance/clock-in', [
+            'latitude' => self::LAT,
+            'longitude' => self::LNG,
+        ])->assertStatus(403);
+    }
+
+    public function test_user_belum_terlink_tidak_bisa_clock_in(): void
+    {
+        $this->provisionTenant('tokoa');
+        $this->withTenantHost('tokoa');
+
+        // User terdaftar tapi belum pakai kode unik → bukan karyawan
+        $register = $this->postJson('/api/v1/auth/register', [
+            'name' => 'Orang Baru',
+            'email' => 'baru@tokoa.com',
+            'password' => 'rahasia123',
+        ])->assertStatus(201);
+
+        $this->withToken($register->json('token'))->postJson('/api/v1/attendance/clock-in', [
             'latitude' => self::LAT,
             'longitude' => self::LNG,
         ])->assertStatus(403);

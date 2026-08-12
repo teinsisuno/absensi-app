@@ -57,15 +57,15 @@ class AdminAuthService
             tenancy()->initialize($tenant);
         }
 
-        // Otorisasi: email = owner tenant, ATAU sudah jadi user lokal owner/admin (via SSO)
+        // Otorisasi: email = owner tenant, ATAU sudah jadi user lokal superadmin/HR (via SSO)
         $isOwner = (string) ($tenant->owner_email ?? '') === $email;
-        $localUser = User::where('email', $email)->whereIn('role', ['owner', 'admin'])->first();
+        $localUser = User::where('email', $email)->whereIn('role', ['superadmin', 'hr'])->first();
 
         if (! $isOwner && ! $localUser) {
-            throw new \RuntimeException('Akun ini tidak terdaftar sebagai owner/admin tenant ini.');
+            throw new \RuntimeException('Akun ini tidak terdaftar sebagai superadmin/HR tenant ini.');
         }
 
-        $role = $isOwner ? 'owner' : ($localUser?->role ?? 'admin');
+        $role = $isOwner ? 'superadmin' : ($localUser?->role ?? 'hr');
 
         $user = User::updateOrCreate(
             ['central_user_id' => $centralUser['id']],

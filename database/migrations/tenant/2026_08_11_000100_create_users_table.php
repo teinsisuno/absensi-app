@@ -7,8 +7,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Admin/owner/supervisor per tenant DB (dibuat via SSO dari Central).
-     * Karyawan ada di tabel employees (login PIN), bukan di sini.
+     * Semua yang bisa login per tenant: user web (superadmin/hr via SSO Central)
+     * dan user mobile hasil registrasi mandiri (role employee, ter-link ke karyawan
+     * via kode unik). PIN 4-6 digit untuk login cepat karyawan.
      */
     public function up(): void
     {
@@ -17,7 +18,9 @@ return new class extends Migration
             $table->unsignedBigInteger('central_user_id')->nullable()->index();
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('role')->default('admin'); // owner / admin / supervisor
+            $table->string('password_hash')->nullable(); // registrasi mandiri; null = user SSO Central
+            $table->string('pin_hash')->nullable();      // PIN 4-6 digit (login cepat)
+            $table->string('role')->default('employee'); // superadmin / hr / employee
             $table->timestamps();
         });
     }

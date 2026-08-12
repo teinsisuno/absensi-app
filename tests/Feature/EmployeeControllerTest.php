@@ -5,86 +5,98 @@ namespace Tests\Feature;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class EmployeeControllerTest extends TestCase
 {
     use DatabaseMigrations;
 
+    /** Token admin di-cache per test instance (hindari email duplikat saat helper dipanggil 2x). */
+    private ?string $cachedAdminToken = null;
+
+    /** @var array<string, string> */
+    private array $cachedEmployeeTokens = [];
+
     private function adminToken(string $slug): string
     {
+        if ($this->cachedAdminToken !== null) {
+            return $this->cachedAdminToken;
+        }
+
         tenancy()->initialize($slug);
         $user = User::create([
             'central_user_id' => 1,
             'name' => 'Admin Tokoa',
             'email' => 'admin@tokoa.com',
-            'role' => 'owner',
+            'role' => 'superadmin',
         ]);
         $token = $user->createToken('sso-test')->plainTextToken;
         tenancy()->end();
 
-        return $token;
+        return $this->cachedAdminToken = $token;
     }
 
-    private function employeeToken(string $slug, string $name, string $pin): string
+    private function employeeToken(string $slug, string $name = 'Siti'): string
     {
+        if (isset($this->cachedEmployeeTokens[$name])) {
+            return $this->cachedEmployeeTokens[$name];
+        }
+
         tenancy()->initialize($slug);
-        $employee = Employee::create([
+        $user = User::create([
+            'name' => $name,
+            'email' => strtolower($name).'@example.test',
+            'role' => 'employee',
+        ]);
+        Employee::create([
+            'user_id' => $user->id,
             'name' => $name,
             'position' => 'Kasir',
-            'pin_hash' => Hash::make($pin),
             'status' => 'active',
         ]);
-        $token = $employee->createToken('employee-pin')->plainTextToken;
+        $token = $user->createToken('mobile')->plainTextToken;
         tenancy()->end();
 
-        return $token;
+        return $this->cachedEmployeeTokens[$name] = $token;
     }
 
-    public function test_admin_bisa_buat_karyawan_dan_mendapat_pin(): void
+    public function test_admin_bisa_buat_karyawan(): void
     {
         $this->provisionTenant('tokoa');
         $this->withTenantHost('tokoa');
 
-        $response = $this->withToken($this->adminToken('tokoa'))->postJson('/api/v1/employees', [
-            'name' => 'Siti',
-            'position' => 'Kasir',
-        ])
+        $this->withToken($this->adminToken('tokoa'))
+            ->postJson('/api/v1/employees', [
+                'name' => 'Siti',
+                'position' => 'Kasir',
+            ])
             ->assertStatus(201)
-            ->assertJsonStructure(['message', 'data' => ['id', 'name'], 'pin'])
-            ->assertJsonPath('data.name', 'Siti');
-
-        $pin = $response->json('pin');
-        $this->assertMatchesRegularExpression('/^\d{4,6}$/', $pin);
-
-        // PIN yang dikasih beneran kepakai buat login karyawan
-        $this->postJson('/api/v1/auth/employee-login', ['name' => 'Siti', 'pin' => $pin])
-            ->assertOk()
-            ->assertJsonPath('employee.name', 'Siti');
+            ->assertJsonStructure(['message', 'data' => ['id', 'name']])
+            ->assertJsonPath('data.name', 'Siti')
+            ->assertJsonPath('data.mobile_role', 'karyawan') // default
+            ->assertJsonPath('data.user_id', null); // link via kode unik, bukan di sini
     }
 
-    public function test_pin_tidak_boleh_sama_dengan_karyawan_aktif_lain(): void
+    public function test_admin_bisa_set_mobile_role_supervisor(): void
     {
         $this->provisionTenant('tokoa');
-        tenancy()->initialize('tokoa');
-        Employee::create(['name' => 'A', 'pin_hash' => Hash::make('111111'), 'status' => 'active']);
-        Employee::create(['name' => 'B', 'pin_hash' => Hash::make('111111'), 'status' => 'active']);
-        tenancy()->end();
-
         $this->withTenantHost('tokoa');
-        $response = $this->withToken($this->adminToken('tokoa'))->postJson('/api/v1/employees', ['name' => 'C'])
-            ->assertStatus(201);
 
-        $this->assertNotEquals('111111', $response->json('pin'));
+        $this->withToken($this->adminToken('tokoa'))
+            ->postJson('/api/v1/employees', [
+                'name' => 'Mandor',
+                'mobile_role' => 'supervisor',
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('data.mobile_role', 'supervisor');
     }
 
     public function test_admin_bisa_list_dan_filter_karyawan(): void
     {
         $this->provisionTenant('tokoa');
         tenancy()->initialize('tokoa');
-        Employee::create(['name' => 'Budi', 'pin_hash' => Hash::make('123456'), 'status' => 'active']);
-        Employee::create(['name' => 'Ani', 'pin_hash' => Hash::make('654321'), 'status' => 'inactive']);
+        Employee::create(['name' => 'Budi', 'position' => 'Kasir', 'status' => 'active']);
+        Employee::create(['name' => 'Ani', 'position' => 'Kasir', 'status' => 'inactive']);
         tenancy()->end();
 
         $token = $this->adminToken('tokoa');
@@ -104,7 +116,7 @@ class EmployeeControllerTest extends TestCase
     {
         $this->provisionTenant('tokoa');
         tenancy()->initialize('tokoa');
-        $employee = Employee::create(['name' => 'Siti', 'pin_hash' => Hash::make('123456'), 'status' => 'active']);
+        $employee = Employee::create(['name' => 'Siti', 'position' => 'Kasir', 'status' => 'active']);
         tenancy()->end();
 
         $this->withTenantHost('tokoa');
@@ -112,38 +124,19 @@ class EmployeeControllerTest extends TestCase
             ->putJson("/api/v1/employees/{$employee->id}", [
                 'name' => 'Siti Updated',
                 'position' => 'Supervisor',
+                'mobile_role' => 'supervisor',
             ])
             ->assertOk()
             ->assertJsonPath('data.position', 'Supervisor')
-            ->assertJsonPath('data.name', 'Siti Updated');
-    }
-
-    public function test_admin_bisa_reset_pin(): void
-    {
-        $this->provisionTenant('tokoa');
-        tenancy()->initialize('tokoa');
-        $employee = Employee::create(['name' => 'Siti', 'pin_hash' => Hash::make('111111'), 'status' => 'active']);
-        tenancy()->end();
-
-        $this->withTenantHost('tokoa');
-        $response = $this->withToken($this->adminToken('tokoa'))
-            ->postJson("/api/v1/employees/{$employee->id}/reset-pin")
-            ->assertOk()
-            ->assertJsonStructure(['message', 'pin']);
-
-        $newPin = $response->json('pin');
-        $this->assertMatchesRegularExpression('/^\d{4,6}$/', $newPin);
-
-        // PIN lama ditolak, PIN baru diterima
-        $this->postJson('/api/v1/auth/employee-login', ['name' => 'Siti', 'pin' => '111111'])->assertStatus(401);
-        $this->postJson('/api/v1/auth/employee-login', ['name' => 'Siti', 'pin' => $newPin])->assertOk();
+            ->assertJsonPath('data.name', 'Siti Updated')
+            ->assertJsonPath('data.mobile_role', 'supervisor');
     }
 
     public function test_admin_bisa_nonaktifkan_karyawan(): void
     {
         $this->provisionTenant('tokoa');
         tenancy()->initialize('tokoa');
-        $employee = Employee::create(['name' => 'Siti', 'pin_hash' => Hash::make('123456'), 'status' => 'active']);
+        $employee = Employee::create(['name' => 'Siti', 'status' => 'active']);
         tenancy()->end();
 
         $this->withTenantHost('tokoa');
@@ -153,9 +146,6 @@ class EmployeeControllerTest extends TestCase
         tenancy()->initialize('tokoa');
         $this->assertDatabaseHas('employees', ['id' => $employee->id, 'status' => 'inactive']);
         tenancy()->end();
-
-        // Karyawan nonaktif tidak bisa login
-        $this->postJson('/api/v1/auth/employee-login', ['name' => 'Siti', 'pin' => '123456'])->assertStatus(401);
     }
 
     public function test_token_karyawan_tidak_bisa_akses_endpoint_admin(): void
@@ -163,16 +153,16 @@ class EmployeeControllerTest extends TestCase
         $this->provisionTenant('tokoa');
         $this->withTenantHost('tokoa');
 
-        $this->withToken($this->employeeToken('tokoa', 'Siti', '123456'))
+        $this->withToken($this->employeeToken('tokoa'))
             ->postJson('/api/v1/employees', ['name' => 'X'])
             ->assertStatus(403);
 
-        $this->withToken($this->employeeToken('tokoa', 'Siti', '123456'))
+        $this->withToken($this->employeeToken('tokoa'))
             ->getJson('/api/v1/work-locations')
             ->assertStatus(403);
     }
 
-    public function test_validasi_nama_wajib_dan_pin_tidak_diterima_dari_client(): void
+    public function test_validasi_nama_wajib_dan_mobile_role_dibatasi(): void
     {
         $this->provisionTenant('tokoa');
         $this->withTenantHost('tokoa');
@@ -181,9 +171,13 @@ class EmployeeControllerTest extends TestCase
         $this->withToken($token)->postJson('/api/v1/employees', ['name' => ''])
             ->assertStatus(422);
 
-        // Client tidak bisa men-set pin_hash sendiri
-        $this->withToken($token)->postJson('/api/v1/employees', ['name' => 'Coba', 'pin_hash' => 'hacked'])
+        // mobile_role hanya boleh nilai yang dikenal
+        $this->withToken($token)->postJson('/api/v1/employees', ['name' => 'Boss', 'mobile_role' => 'boss'])
+            ->assertStatus(422);
+
+        // Client tidak bisa men-set user_id sendiri (link via kode unik)
+        $this->withToken($token)->postJson('/api/v1/employees', ['name' => 'Coba', 'user_id' => 99])
             ->assertStatus(201)
-            ->assertJsonMissingPath('data.pin_hash');
+            ->assertJsonPath('data.user_id', null);
     }
 }

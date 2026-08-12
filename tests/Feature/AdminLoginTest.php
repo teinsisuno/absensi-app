@@ -45,7 +45,7 @@ class AdminLoginTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('tenant', 'tokoa')
             ->assertJsonPath('user.email', 'owner@tokoa.com')
-            ->assertJsonPath('user.role', 'owner');
+            ->assertJsonPath('user.role', 'superadmin');
 
         $this->assertNotEmpty($response->json('token'));
 
@@ -54,7 +54,7 @@ class AdminLoginTest extends TestCase
         $this->assertDatabaseHas('users', [
             'central_user_id' => 42,
             'email' => 'owner@tokoa.com',
-            'role' => 'owner',
+            'role' => 'superadmin',
         ]);
         tenancy()->end();
     }
@@ -101,13 +101,13 @@ class AdminLoginTest extends TestCase
         $this->provisionTenant('tokoa');
         $this->fakeCentralLogin(200, ['id' => 77, 'name' => 'Admin Toko', 'email' => 'admin@tokoa.com']);
 
-        // Admin lokal sudah dibuat (misal via SSO dengan role admin)
+        // Admin lokal sudah dibuat (misal via SSO dengan role hr)
         tenancy()->initialize('tokoa');
         User::create([
             'central_user_id' => 77,
             'name' => 'Admin Toko',
             'email' => 'admin@tokoa.com',
-            'role' => 'admin',
+            'role' => 'hr',
         ]);
         tenancy()->end();
 
@@ -117,6 +117,6 @@ class AdminLoginTest extends TestCase
             'password' => 'rahasia123',
         ]);
 
-        $response->assertOk()->assertJsonPath('user.role', 'admin');
+        $response->assertOk()->assertJsonPath('user.role', 'hr');
     }
 }

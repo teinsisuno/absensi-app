@@ -53,7 +53,10 @@ class SsoService
                 [
                     'name' => $payload['name'] ?? $payload['email'],
                     'email' => $payload['email'],
-                    'role' => $payload['role'] ?? 'admin',
+                    'role' => match ($payload['role'] ?? 'member') {
+                        'owner' => 'superadmin',
+                        default => 'hr',
+                    },
                 ]
             );
 

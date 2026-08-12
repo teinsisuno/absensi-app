@@ -78,10 +78,10 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Dipastikan instance Employee oleh middleware 'employee'.
+     * Dipastikan user ter-link ke karyawan aktif oleh middleware 'employee'.
      */
     private function employee(Request $request): Employee
     {
-        return $request->user();
+        return $request->user()->employee;
     }
 }

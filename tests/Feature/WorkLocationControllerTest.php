@@ -17,7 +17,7 @@ class WorkLocationControllerTest extends TestCase
             'central_user_id' => 1,
             'name' => 'Admin Tokoa',
             'email' => 'admin@tokoa.com',
-            'role' => 'owner',
+            'role' => 'superadmin',
         ]);
         $token = $user->createToken('sso-test')->plainTextToken;
         tenancy()->end();

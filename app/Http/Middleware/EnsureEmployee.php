@@ -2,15 +2,14 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Employee;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Hanya karyawan (login PIN) yang boleh lewat.
- * Token admin (SSO Central) → 403.
+ * Hanya user yang sudah ter-link ke karyawan aktif yang boleh lewat.
+ * Token admin (SSO Central) / user tanpa link → 403.
  */
 class EnsureEmployee
 {
@@ -18,8 +17,8 @@ class EnsureEmployee
     {
         $user = $request->user();
 
-        if (! $user instanceof Employee) {
-            abort(403, 'Hanya untuk karyawan (login PIN).');
+        if (! $user instanceof User || ! $user->employee || $user->employee->status !== 'active') {
+            abort(403, 'Hanya untuk karyawan yang ter-link ke akun.');
         }
 
         return $next($request);

@@ -22,4 +22,9 @@ return [
     | Pola subdomain tenant: {slug}-absensi.megakomsel.com
     */
     'tenant_domain_pattern' => env('ABSENSI_TENANT_DOMAIN_PATTERN', '{slug}-absensi.megakomsel.com'),
+
+    /*
+    | Umur kode unik (jam) sebelum kedaluwarsa. Default 48 jam.
+    */
+    'invite_expiry_hours' => env('ABSENSI_INVITE_EXPIRY_HOURS', 48),
 ];
