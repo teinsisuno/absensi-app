@@ -52,3 +52,12 @@ web full management khusus superadmin dan HR,
 - management nggak butuh absen :D
 
 3. setuju
+
+idcq yqqe knqs nylq
+
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=465
+MAIL_USERNAME=unrancreative2020@gmail.com
+MAIL_PASSWORD=idcq yqqe knqs nylq
+MAIL_ENCRYPTION=ssl

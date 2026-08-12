@@ -1,0 +1,33 @@
+# Jangan salin env lokal & secret ke image
+.env
+.env.*
+!.env.example
+docker/.env
+
+# Dependensi di-build di stage masing-masing
+/vendor
+/node_modules
+/frontend/node_modules
+
+# Storage & cache dibikin saat runtime
+/storage
+/bootstrap/cache
+/public/build
+# File sinyal Vite dev server — JANGAN ikut ke image produksi
+/public/hot
+
+# Hasil build frontend lama (image punya stage sendiri)
+/frontend/.output
+/frontend/dist
+/frontend/.nuxt
+
+# Git & editor
+.git
+.gitignore
+.idea
+.vscode
+*.log
+
+# Docker files (entrypoint di-copy eksplisit oleh Dockerfile)
+Dockerfile
+docker-compose.yml

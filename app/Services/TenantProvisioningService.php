@@ -64,9 +64,13 @@ class TenantProvisioningService
                 'owner_email' => $ownerEmail,
                 'subscription_id' => $subscriptionId,
             ]);
-        } elseif ($meta->wasChanged('status') && $meta->status === 'provisioning') {
+            // TenantCreated event otomatis menjalankan CreateDatabase + MigrateDatabase.
+        } elseif ($meta->status === 'provisioning') {
             // Retry provisioning yang sebelumnya gagal: pastikan DB + migrasi selesai.
-            // send() butuh callable yang mengembalikan payload untuk job pertama pipeline.
+            // Catatan: JANGAN andalkan wasChanged('status') — kalau status sebelumnya sudah
+            // 'provisioning', update tidak mengubah nilai → wasChanged() false → pipeline
+            // di-skip padahal DB belum pernah dibuat (bug: status 'active' tanpa DB).
+            // Cek keberadaan DB secara eksplisit lebih aman + idempotent.
             try {
                 JobPipeline::make([
                     CreateDatabase::class,

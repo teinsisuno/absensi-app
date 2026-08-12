@@ -3,13 +3,9 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'default', middleware: 'guard' })
+definePageMeta({ layout: false })
 
 onMounted(() => {
-  const auth = useAuthStore()
-  auth.restore()
-  if (auth.isAdmin) navigateTo('/admin/employees')
-  else if (auth.isEmployee) navigateTo('/clock')
-  else navigateTo('/login')
+  navigateTo('/splash')
 })
 </script>

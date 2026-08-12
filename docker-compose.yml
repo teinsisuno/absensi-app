@@ -1,0 +1,77 @@
+# docker-compose.yml — absensi-app (produk Absensi) + MySQL + Redis
+# Deploy pertama absensi-app di mini-pc 10.10.10.122.
+# App di port 8081 (8080 sudah dipakai portal-app central).
+#
+# Setup:
+# 1. docker/.env (compose interpolation — JANGAN di-commit):
+#      MYSQL_DATABASE=absensi_central
+#      MYSQL_USER=absensi
+#      MYSQL_PASSWORD=<strong-password>
+#      MYSQL_ROOT_PASSWORD=<strong-root-password>
+# 2. docker/.env.production (di-MOUNT ke /var/www/html/.env, bukan ke image).
+#    DB_* di .env.production HARUS hardcode (bukan ${VAR}) — Laravel tidak expand.
+# 3. Tunnel Zero Trust: public hostname *.absensi.megakomsel.com
+#    → service HTTP http://10.10.10.122:8081 (tenant subdomain {slug}-absensi)
+#    dan absensi.megakomsel.com → 8081 (kalau mau central landing/webhook via tunnel).
+
+services:
+  app:
+    build: .
+    image: absensi-app:latest
+    container_name: absensi-app
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - ./docker/.env.production:/var/www/html/.env:ro
+      - absensi-storage:/var/www/html/storage
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      # PENTING: entrypoint pakai getenv('DB_*') — env var OS, BUKAN dari .env Laravel.
+      - DB_CONNECTION=central
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${MYSQL_DATABASE:-absensi_central}
+      - DB_USERNAME=${MYSQL_USER:-absensi}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.0
+    container_name: absensi-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-absensi_central}
+      MYSQL_USER: ${MYSQL_USER:-absensi}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - absensi-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Redis untuk stancl tenancy (CacheTenancyBootstrapper butuh cache tags)
+  redis:
+    image: redis:7-alpine
+    container_name: absensi-redis
+    restart: unless-stopped
+    volumes:
+      - absensi-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  absensi-storage:
+  absensi-mysql:
+  absensi-redis:

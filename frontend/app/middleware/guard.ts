@@ -1,6 +1,6 @@
 /**
  * Guard auth — hanya jalan di client (SPA mode).
- * Redirect berdasarkan tipe login: admin vs karyawan.
+ * Alur: splash → register/set-pin/setup (akun baru) → dashboard/clock.
  */
 export default defineNuxtRouteMiddleware((to) => {
   if (import.meta.server) return
@@ -11,24 +11,27 @@ export default defineNuxtRouteMiddleware((to) => {
   const isAdminRoute = to.path.startsWith('/admin')
 
   if (!auth.isLoggedIn) {
-    // Halaman publik tanpa login: /sso (handler token Central) dan /login (PIN karyawan)
-    const isPublicPage = to.path === '/sso' || to.path === '/login'
+    // Halaman publik tanpa login
+    const isPublicPage = ['/sso', '/login', '/register', '/splash'].includes(to.path)
     if (!isPublicPage) {
       return navigateTo(isAdminRoute ? '/sso' : '/login')
     }
     return
   }
 
+  // Sudah login
+  const home = () => (auth.isAdmin ? '/admin/employees' : auth.isEmployee ? '/dashboard' : '/setup')
+
   if (isAdminRoute && !auth.isAdmin) {
     // Karyawan tidak boleh buka halaman admin
-    return navigateTo('/clock')
+    return navigateTo('/dashboard')
   }
 
-  if (to.path === '/login' && auth.isLoggedIn) {
-    return navigateTo(auth.isAdmin ? '/admin/employees' : '/clock')
+  if (['/login', '/register', '/splash'].includes(to.path)) {
+    return navigateTo(home())
   }
 
   if (to.path === '/sso' && auth.isLoggedIn) {
-    return navigateTo(auth.isAdmin ? '/admin/employees' : '/clock')
+    return navigateTo(home())
   }
 })
