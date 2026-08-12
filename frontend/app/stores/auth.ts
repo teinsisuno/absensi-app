@@ -28,6 +28,7 @@ const HAS_ACCOUNT_KEY = 'absensi_has_account'
 const FACE_DONE_KEY = 'absensi_face_done'
 const SETUP_CODE_KEY = 'absensi_setup_code'
 const SETUP_VERIFIED_KEY = 'absensi_setup_verified'
+const LAST_EMAIL_KEY = 'absensi_last_email'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null)
@@ -46,6 +47,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** User baru pertama kali membuka app (belum pernah daftar di device ini). */
   const hasAccount = computed(() => import.meta.client ? localStorage.getItem(HAS_ACCOUNT_KEY) === '1' : false)
+
+  /** Email terakhir yang dipakai login — dipakai prefill form PIN biar tinggal ketik PIN. */
+  const lastEmail = ref<string>(import.meta.client ? localStorage.getItem(LAST_EMAIL_KEY) || '' : '')
+
+  function rememberEmail(email: string) {
+    lastEmail.value = email
+    if (import.meta.client) localStorage.setItem(LAST_EMAIL_KEY, email)
+  }
 
   function persist() {
     if (import.meta.client) {
@@ -170,8 +179,62 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = data.token
     user.value = data.user
     employee.value = data.employee
+    rememberEmail(email)
     persist()
     return data
+  }
+
+  /** Login biometrik (WebAuthn) — server cari user dari credential. */
+  async function webauthnLogin(credential: any) {
+    const data = await $fetch<{
+      token: string
+      user: AdminUser
+      employee: EmployeeUser | null
+    }>('/auth/webauthn/login', {
+      baseURL: apiBase(),
+      method: 'POST',
+      body: { credential },
+    })
+    token.value = data.token
+    user.value = data.user
+    employee.value = data.employee
+    if (data.user?.email) rememberEmail(data.user.email)
+    persist()
+    return data
+  }
+
+  /** Simpan kunci biometrik (WebAuthn) — wajib auth (login PIN dulu). */
+  async function webauthnRegister(credential: any, name?: string) {
+    return await $fetch<{
+      message: string
+      key: { id: number; name: string; created_at: string }
+    }>('/auth/webauthn/register', {
+      baseURL: apiBase(),
+      method: 'POST',
+      body: { credential, name },
+      headers: { Authorization: `Bearer ${token.value}` },
+    })
+  }
+
+  /** Daftar kunci biometrik user yang aktif. */
+  async function webauthnKeys() {
+    return await $fetch<{ data: { id: number; name: string; created_at: string }[] }>(
+      '/auth/webauthn/keys',
+      {
+        baseURL: apiBase(),
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token.value}` },
+      }
+    )
+  }
+
+  /** Hapus kunci biometrik. */
+  async function webauthnDelete(id: number) {
+    return await $fetch<{ message: string }>(`/auth/webauthn/keys/${id}`, {
+      baseURL: apiBase(),
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token.value}` },
+    })
   }
 
   /** Login admin/owner via token SSO dari Central */
@@ -252,6 +315,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     isEmployee,
     hasAccount,
+    lastEmail,
+    rememberEmail,
     persist,
     restore,
     clearSetup,
@@ -261,6 +326,10 @@ export const useAuthStore = defineStore('auth', () => {
     linkEmployee,
     login,
     pinLogin,
+    webauthnLogin,
+    webauthnRegister,
+    webauthnKeys,
+    webauthnDelete,
     loginSso,
     loginAdmin,
     markFaceDone,

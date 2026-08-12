@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\ShiftController;
 use App\Http\Controllers\Api\V1\WorkLocationController;
 use App\Http\Controllers\Api\V1\WorkingCalendarController;
 use App\Http\Controllers\Api\V1\WorkPatternController;
+use App\Http\Controllers\Api\V1\WebauthnController;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
@@ -51,12 +52,22 @@ Route::middleware([
     Route::post('/auth/sso', [AuthController::class, 'sso']);
     Route::post('/auth/admin-login', [AuthController::class, 'adminLogin']);
 
+    // WebAuthn (passkey/biometrik) — login options & login publik (userless)
+    Route::post('/auth/webauthn/login/options', [WebauthnController::class, 'loginOptions']);
+    Route::post('/auth/webauthn/login', [WebauthnController::class, 'login']);
+
     // Auth terproteksi — user yang baru daftar / sedang setup
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::post('/auth/set-pin', [AuthController::class, 'setPin']);
         Route::post('/auth/verify-invite', [AuthController::class, 'verifyInvite']);
         Route::post('/auth/link-employee', [AuthController::class, 'linkEmployee']);
+
+        // WebAuthn — pendaftaran biometrik (wajib login PIN dulu)
+        Route::post('/auth/webauthn/register/options', [WebauthnController::class, 'registerOptions']);
+        Route::post('/auth/webauthn/register', [WebauthnController::class, 'register']);
+        Route::get('/auth/webauthn/keys', [WebauthnController::class, 'keys']);
+        Route::delete('/auth/webauthn/keys/{id}', [WebauthnController::class, 'destroyKey']);
     });
 
     // Admin (superadmin/HR) — kelola karyawan, kode unik, lokasi kerja

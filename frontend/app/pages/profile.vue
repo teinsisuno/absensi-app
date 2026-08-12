@@ -62,6 +62,31 @@
         <button
           type="button"
           class="flex w-full items-center justify-between border-b border-gray-100 p-4 text-left transition hover:bg-gray-50"
+          @click="toggleBiometric"
+        >
+          <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-4 w-4">
+                <path
+                  d="M12 11a3 3 0 0 1 3 3c0 2.5-.8 5-2 7M9.3 6.6A6 6 0 0 1 18 14M6.5 14a5.5 5.5 0 0 0 .5 2M4.6 10.3A8 8 0 0 1 12 4"
+                  stroke-linecap="round"
+                />
+                <path d="M12 14a2.5 2.5 0 0 0 .5 5" stroke-linecap="round" />
+              </svg>
+            </div>
+            <div>
+              <span class="block text-sm font-medium text-gray-800">Login Sidik Jari</span>
+              <span class="block text-xs text-gray-400">{{ bioStatusText }}</span>
+            </div>
+          </div>
+          <svg v-if="!bioBusy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 text-gray-300">
+            <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span v-else class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-teal-500 border-t-transparent"></span>
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center justify-between border-b border-gray-100 p-4 text-left transition hover:bg-gray-50"
           @click="navigateTo('/setup/face')"
         >
           <div class="flex items-center gap-3">
@@ -105,18 +130,70 @@
       </button>
     </div>
   </div>
+  <!-- Modal aktivasi biometrik -->
+  <BiometricSetupModal
+    v-if="showBioSetup"
+    @close="showBioSetup = false"
+    @done="onBioActivated"
+  />
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'mobile', middleware: 'guard' })
 
 const auth = useAuthStore()
+const showBioSetup = ref(false)
+const bioBusy = ref(false)
+const bioKeys = ref<{ id: number; name: string; created_at: string }[]>([])
 
 const roleLabel = computed(() => {
   if (auth.employee?.mobile_role) return auth.employee.mobile_role
   if (auth.isAdmin) return 'Admin'
   return 'Karyawan'
 })
+
+const bioStatusText = computed(() => {
+  if (bioKeys.value.length > 0) return 'Aktif — ketuk untuk nonaktifkan'
+  return 'Belum aktif — ketuk untuk mengaktifkan'
+})
+
+/** Muat daftar kunci biometrik saat halaman dibuka. */
+onMounted(async () => {
+  if (!(await isBiometricAvailable())) return
+  try {
+    const { data } = await auth.webauthnKeys()
+    bioKeys.value = data
+  } catch {
+    // abaikan — perangkat tanpa dukungan
+  }
+})
+
+/** Aktifkan kalau belum ada key; nonaktifkan kalau sudah ada. */
+async function toggleBiometric() {
+  if (bioBusy.value) return
+  if (bioKeys.value.length === 0) {
+    showBioSetup.value = true
+    return
+  }
+  if (!confirm('Nonaktifkan login sidik jari di perangkat ini?')) return
+
+  bioBusy.value = true
+  try {
+    for (const key of bioKeys.value) {
+      await auth.webauthnDelete(key.id)
+    }
+    bioKeys.value = []
+  } catch (e: any) {
+    alert(e?.data?.message || 'Gagal menonaktifkan biometrik.')
+  } finally {
+    bioBusy.value = false
+  }
+}
+
+function onBioActivated() {
+  showBioSetup.value = false
+  bioKeys.value = [{ id: 1, name: 'Fingerprint', created_at: new Date().toISOString() }]
+}
 
 async function logout() {
   await auth.logout()

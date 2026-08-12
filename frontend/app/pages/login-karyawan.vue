@@ -128,6 +128,34 @@
             Masuk
           </button>
         </div>
+
+        <!-- Login Biometrik (sidik jari / Face ID) — hanya muncul kalau device support -->
+        <div v-if="biometricAvailable" class="w-full max-w-xs">
+          <div class="mb-3 flex items-center gap-3">
+            <div class="h-px flex-1 bg-white/20"></div>
+            <span class="text-xs text-white/50">atau</span>
+            <div class="h-px flex-1 bg-white/20"></div>
+          </div>
+          <button
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 py-3.5 font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 active:scale-[0.98]"
+            :disabled="loading"
+            @click="loginBiometric"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-5 w-5">
+              <path
+                d="M12 11a3 3 0 0 1 3 3c0 2.5-.8 5-2 7M9.3 6.6A6 6 0 0 1 18 14M6.5 14a5.5 5.5 0 0 0 .5 2M4.6 10.3A8 8 0 0 1 12 4"
+                stroke-linecap="round"
+              />
+              <path d="M12 14a2.5 2.5 0 0 0 .5 5" stroke-linecap="round" />
+            </svg>
+            <span v-if="!loading">Masuk dengan Sidik Jari</span>
+            <span v-else class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent align-middle"></span>
+          </button>
+          <p v-if="bioError" class="mt-3 rounded-xl bg-red-500/20 px-3 py-2 text-center text-sm text-red-100">
+            {{ bioError }}
+          </p>
+        </div>
       </div>
 
       <div class="pb-8 text-center">
@@ -141,6 +169,13 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal aktivasi biometrik setelah login PIN pertama kali -->
+  <BiometricSetupModal
+    v-if="showBioSetup"
+    @close="finishSetup"
+    @done="finishSetup"
+  />
 </template>
 
 <script setup lang="ts">
@@ -149,11 +184,14 @@ definePageMeta({ layout: false })
 const auth = useAuthStore()
 
 const mode = ref<'pin' | 'email'>('pin')
-const email = ref('')
+const email = ref(auth.lastEmail || '')
 const pin = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
+const bioError = ref('')
+const biometricAvailable = ref(false)
+const showBioSetup = ref(false)
 
 /** Setelah login sukses → arahkan sesuai kondisi akun. */
 function goHome() {
@@ -188,7 +226,7 @@ async function submitPin() {
   loading.value = true
   try {
     await auth.pinLogin(email.value.trim(), pin.value)
-    await goHome()
+    await afterLogin()
   } catch (e: any) {
     error.value = e?.data?.message || 'Email atau PIN salah.'
     pin.value = ''
@@ -196,6 +234,59 @@ async function submitPin() {
     loading.value = false
   }
 }
+
+/** Setelah login sukses: tawarkan aktivasi biometrik kalau device support & belum aktif. */
+async function afterLogin() {
+  if (!biometricAvailable.value) return goHome()
+
+  try {
+    const { data } = await auth.webauthnKeys()
+    if (data.length === 0) {
+      showBioSetup.value = true
+      return // tunggu user pilih (Aktifkan / Nanti saja)
+    }
+  } catch {
+    // gagal cek keys — tetap lanjut home
+  }
+  return goHome()
+}
+
+function finishSetup() {
+  showBioSetup.value = false
+  goHome()
+}
+
+/** Login biometrik: ambil options → browser minta sidik jari → kirim assertion. */
+async function loginBiometric() {
+  bioError.value = ''
+  loading.value = true
+  try {
+    const options = await $fetch<any>('/auth/webauthn/login/options', {
+      baseURL: apiBase(),
+      method: 'POST',
+    })
+    const credential: any = await navigator.credentials.get({
+      publicKey: toRequestOptions(options),
+    })
+    if (!credential) throw new Error('Login biometrik dibatalkan.')
+
+    await auth.webauthnLogin(serializeCredential(credential))
+    await goHome()
+  } catch (e: any) {
+    if (e?.name === 'NotAllowedError') {
+      bioError.value = 'Login dibatalkan.'
+    } else {
+      bioError.value = e?.data?.message || e?.message || 'Verifikasi biometrik gagal.'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+/** Cek dukungan biometrik sekali saat halaman dibuka. */
+onMounted(async () => {
+  biometricAvailable.value = await isBiometricAvailable()
+})
 
 async function submitEmail() {
   error.value = ''
