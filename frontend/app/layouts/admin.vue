@@ -8,11 +8,61 @@
       </div>
       <nav class="flex-1 space-y-1 px-3 py-4">
         <NuxtLink
+          to="/admin"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+          exact-active-class="bg-gray-800 text-white"
+        >
+          <span>📊</span> Dashboard
+        </NuxtLink>
+        <NuxtLink
           to="/admin/employees"
           class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
           active-class="bg-gray-800 text-white"
         >
           <span>👥</span> Karyawan
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/invite-codes"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>🔑</span> Kode Unik
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/groups"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>🗂️</span> Group
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/calendars"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>📅</span> Kalender Kerja
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/work-patterns"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>⏱️</span> Pola Kerja
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/shifts"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>🕐</span> Shift
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/schedules"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>📋</span> Jadwal Karyawan
         </NuxtLink>
         <NuxtLink
           to="/admin/locations"

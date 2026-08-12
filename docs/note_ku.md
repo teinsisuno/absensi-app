@@ -61,3 +61,5 @@ MAIL_PORT=465
 MAIL_USERNAME=unrancreative2020@gmail.com
 MAIL_PASSWORD=idcq yqqe knqs nylq
 MAIL_ENCRYPTION=ssl
+
+kita naming dulu deh roles-nya = 1. supervisor (owner pakai ini aja) = full akses di pwa hanya monitor tidak butuh relasi ke karyawan, 2.hrmanager (admin) full akses web, di pwa bisa approval cuti, 3.supervisor (manager atau mandor) tidak bisa akses web di p bisa buat group dan buat jadwal karyawan. 4. karyawan

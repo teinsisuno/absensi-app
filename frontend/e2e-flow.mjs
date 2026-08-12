@@ -59,7 +59,9 @@ async function setInput(ev, selector, value) {
     const el = document.querySelector(${JSON.stringify(selector)})
     if (!el) return false
     el.focus()
-    el.value = ${JSON.stringify(value)}
+    // Native setter — wajib biar v-model Vue ikut ter-update
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+    setter.call(el, ${JSON.stringify(value)})
     el.dispatchEvent(new Event('input', { bubbles: true }))
     el.dispatchEvent(new Event('change', { bubbles: true }))
     return true
@@ -97,8 +99,8 @@ async function step(name, fn) {
 await step('Splash → register', async () => {
   await ev.evalJs(`location.href = ${JSON.stringify(BASE + '/splash')}`)
   await ev.waitFor(`location.pathname === '/register'`, 'redirect ke /register', 25000)
-  const hasForm = await ev.evalJs(`document.body.innerText.includes('Daftar Akun')`)
-  if (!hasForm) throw new Error('Form Daftar Akun tidak muncul')
+  const hasForm = await ev.evalJs(`document.body.innerText.includes('Buat Akun')`)
+  if (!hasForm) throw new Error('Form Buat Akun tidak muncul')
 })
 
 // 2. Register
@@ -106,28 +108,54 @@ await step('Register', async () => {
   await setInput(ev, '#name', 'E2E User')
   await setInput(ev, '#email', EMAIL)
   await setInput(ev, '#password', 'password123')
-  await submitForm(ev)
+  await setInput(ev, '#passwordConfirm', 'password123')
+  // UI baru pakai tombol "Lanjutkan" (bukan form submit)
+  await ev.evalJs(`(() => {
+    const btn = [...document.querySelectorAll('button')].find(b => b.innerText.includes('Lanjutkan'))
+    if (!btn) return false
+    btn.click()
+    return true
+  })()`)
   await ev.waitFor(`location.pathname === '/set-pin'`, 'redirect ke /set-pin', 20000)
   const hasPin = await ev.evalJs(`document.body.innerText.includes('Atur PIN')`)
   if (!hasPin) throw new Error('Halaman Atur PIN tidak muncul')
 })
 
-// 3. Set PIN
+// 3. Set PIN (keypad 6 digit → otomatis konfirmasi → otomatis submit)
 await step('Set PIN', async () => {
-  await setInput(ev, '#pin', '2468')
-  await setInput(ev, '#pin-confirm', '2468')
-  await submitForm(ev)
+  await ev.waitFor(`document.body.innerText.includes('Atur PIN')`, 'halaman Atur PIN', 15000)
+  // Tahap 1: buat PIN 123456 (klik tombol keypad)
+  for (const d of '123456') {
+    await ev.evalJs(`(() => {
+      const btn = [...document.querySelectorAll('button')].find(b => b.innerText.trim() === ${JSON.stringify(d)})
+      if (!btn) return false
+      btn.click()
+      return true
+    })()`)
+    await sleep(80)
+  }
+  // Tunggu masuk tahap konfirmasi ("Ulangi PIN yang sama")
+  await ev.waitFor(`document.body.innerText.includes('Ulangi PIN yang sama')`, 'tahap konfirmasi PIN', 10000)
+  for (const d of '123456') {
+    await ev.evalJs(`(() => {
+      const btn = [...document.querySelectorAll('button')].find(b => b.innerText.trim() === ${JSON.stringify(d)})
+      if (!btn) return false
+      btn.click()
+      return true
+    })()`)
+    await sleep(80)
+  }
   await ev.waitFor(`location.pathname === '/setup'`, 'redirect ke /setup', 20000)
-  const hasSetup = await ev.evalJs(`document.body.innerText.includes('Pengaturan Awal')`)
-  if (!hasSetup) throw new Error('Halaman Pengaturan Awal tidak muncul')
+  const hasSetup = await ev.evalJs(`document.body.innerText.includes('Tautkan Akun')`)
+  if (!hasSetup) throw new Error('Halaman Tautkan Akun tidak muncul')
 })
 
 // 4. Kode unik → nama karyawan muncul otomatis
 await step('Kode unik → nama muncul', async () => {
   await setInput(ev, '#code', 'TEST5678')
-  await ev.waitFor(`document.body.innerText.includes('Cici Test')`, 'nama Cici Test muncul', 15000)
-  const valid = await ev.evalJs(`document.body.innerText.includes('Kode valid')`)
-  if (!valid) throw new Error('Badge Kode valid tidak muncul')
+  await ev.waitFor(`document.body.innerText.includes('Paijo Super')`, 'nama Paijo Super muncul', 15000)
+  const valid = await ev.evalJs(`document.body.innerText.includes('Lanjutkan ke Dashboard')`)
+  if (!valid) throw new Error('Tombol lanjut belum muncul')
 })
 
 // 5. Scan wajah → mode demo → kembali
@@ -160,20 +188,20 @@ await step('Scan wajah (demo) → kembali', async () => {
 // 6. Simpan → dashboard
 await step('Simpan → dashboard', async () => {
   const saveEnabled = await ev.evalJs(`(() => {
-    const btn = [...document.querySelectorAll('button')].find(b => b.innerText.trim() === 'Simpan')
+    const btn = [...document.querySelectorAll('button')].find(b => b.innerText.includes('Lanjutkan ke Dashboard'))
     return btn ? !btn.disabled : false
   })()`)
-  if (!saveEnabled) throw new Error('Tombol Simpan belum aktif')
+  if (!saveEnabled) throw new Error('Tombol Lanjutkan belum aktif')
   await ev.evalJs(`(() => {
-    const btn = [...document.querySelectorAll('button')].find(b => b.innerText.trim() === 'Simpan')
+    const btn = [...document.querySelectorAll('button')].find(b => b.innerText.includes('Lanjutkan ke Dashboard'))
     if (!btn) return false
     btn.click()
     return true
   })()`)
   await ev.waitFor(`location.pathname === '/dashboard'`, 'redirect ke /dashboard', 20000)
-  const dash = await ev.evalJs(`document.body.innerText.includes('Selamat datang')`)
+  const dash = await ev.evalJs(`document.body.innerText.includes('Selamat')`)
   if (!dash) throw new Error('Dashboard tidak muncul')
-  const name = await ev.evalJs(`document.body.innerText.includes('Cici Test')`)
+  const name = await ev.evalJs(`document.body.innerText.includes('Paijo Super')`)
   if (!name) throw new Error('Nama karyawan tidak muncul di dashboard')
 })
 

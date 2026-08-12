@@ -1,8 +1,14 @@
 <template>
   <div class="w-full max-w-sm">
     <div class="card p-8 text-center">
-      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-2xl font-bold text-white">
-        A
+      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-white">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-7 w-7">
+          <path
+            d="M12 11a3 3 0 0 1 3 3c0 2.5-.8 5-2 7M9.3 6.6A6 6 0 0 1 18 14M6.5 14a5.5 5.5 0 0 0 .5 2M4.6 10.3A8 8 0 0 1 12 4"
+            stroke-linecap="round"
+          />
+          <path d="M12 14a2.5 2.5 0 0 0 .5 5" stroke-linecap="round" />
+        </svg>
       </div>
 
       <div v-if="loading" class="py-6">

@@ -193,6 +193,12 @@ async function remove(loc: WorkLocation) {
 }
 
 function useMyLocation() {
+  // Browser cuma kasih akses GPS di secure context (HTTPS atau localhost).
+  // http://{slug}-absensi.test:8000 (dev) = bukan secure context → diblokir.
+  if (!window.isSecureContext) {
+    formError.value = 'Akses GPS butuh HTTPS (atau localhost). Buka lewat https:// — di dev gunakan localhost atau flag Chrome insecure-origin.'
+    return
+  }
   if (!('geolocation' in navigator)) {
     formError.value = 'Browser tidak mendukung GPS.'
     return
@@ -205,8 +211,13 @@ function useMyLocation() {
       form.longitude = Number(pos.coords.longitude.toFixed(7))
       locating.value = false
     },
-    () => {
-      formError.value = 'Gagal mendapatkan lokasi. Periksa izin GPS browser.'
+    (err) => {
+      const messages: Record<number, string> = {
+        1: 'Izin GPS ditolak. Klik ikon 🔒 di address bar → izinkan akses Lokasi, lalu coba lagi.',
+        2: 'Posisi tidak tersedia. Nyalakan GPS/lokasi perangkat & coba di luar ruangan.',
+        3: 'Waktu mencari lokasi habis. Coba lagi.',
+      }
+      formError.value = messages[err?.code] || 'Gagal mendapatkan lokasi. Periksa izin GPS browser.'
       locating.value = false
     },
     { enableHighAccuracy: true, timeout: 15_000 },

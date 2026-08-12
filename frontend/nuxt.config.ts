@@ -18,6 +18,13 @@ export default defineNuxtConfig({
     configPath: '~/tailwind.config.ts',
   },
 
+  // Dev: izinkan domain tenant .test (Vite default block host yang bukan localhost)
+  vite: {
+    server: {
+      allowedHosts: true,
+    },
+  },
+
   runtimeConfig: {
     public: {
       // Base URL API tenant.
@@ -36,8 +43,8 @@ export default defineNuxtConfig({
       short_name: 'Absensi',
       description: 'Aplikasi absensi karyawan — clock in/out dengan GPS',
       lang: 'id',
-      theme_color: '#4f46e5',
-      background_color: '#f3f4f6',
+      theme_color: '#0f766e',
+      background_color: '#f8fafc',
       display: 'standalone',
       icons: [
         {
@@ -66,7 +73,7 @@ export default defineNuxtConfig({
       htmlAttrs: { lang: 'id' },
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
-        { name: 'theme-color', content: '#4f46e5' },
+        { name: 'theme-color', content: '#0f766e' },
       ],
     },
   },

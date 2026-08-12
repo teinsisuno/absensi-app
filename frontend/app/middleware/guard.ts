@@ -12,9 +12,9 @@ export default defineNuxtRouteMiddleware((to) => {
 
   if (!auth.isLoggedIn) {
     // Halaman publik tanpa login
-    const isPublicPage = ['/sso', '/login', '/register', '/splash'].includes(to.path)
+    const isPublicPage = ['/sso', '/login', '/login-karyawan', '/register', '/splash'].includes(to.path)
     if (!isPublicPage) {
-      return navigateTo(isAdminRoute ? '/sso' : '/login')
+      return navigateTo(isAdminRoute ? '/sso' : '/login-karyawan')
     }
     return
   }
@@ -27,7 +27,7 @@ export default defineNuxtRouteMiddleware((to) => {
     return navigateTo('/dashboard')
   }
 
-  if (['/login', '/register', '/splash'].includes(to.path)) {
+  if (['/login', '/login-karyawan', '/register', '/splash'].includes(to.path)) {
     return navigateTo(home())
   }
 

@@ -3,7 +3,7 @@
     <div class="mb-6 flex items-center justify-between">
       <div>
         <h1 class="text-xl font-semibold text-gray-900">Karyawan</h1>
-        <p class="text-sm text-gray-500">Kelola data karyawan dan PIN absen</p>
+        <p class="text-sm text-gray-500">Kelola data karyawan dan kode unik</p>
       </div>
       <button class="btn-primary" @click="openCreate">+ Tambah</button>
     </div>
@@ -22,6 +22,7 @@
             <th class="px-4 py-3 font-medium">Jabatan</th>
             <th class="px-4 py-3 font-medium">Lokasi</th>
             <th class="px-4 py-3 font-medium">Status</th>
+            <th class="px-4 py-3 font-medium">Akun</th>
             <th class="px-4 py-3 text-right font-medium">Aksi</th>
           </tr>
         </thead>
@@ -47,9 +48,22 @@
               </span>
             </td>
             <td class="px-4 py-3">
+              <span v-if="emp.user" class="text-xs text-green-700">
+                ✓ {{ emp.user.name }}
+              </span>
+              <span v-else class="text-xs text-gray-400">Belum link</span>
+            </td>
+            <td class="px-4 py-3">
               <div class="flex justify-end gap-1">
+                <button
+                  class="rounded-lg px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
+                  :disabled="!!emp.user"
+                  :title="emp.user ? 'Akun sudah ter-link' : 'Generate kode unik untuk link akun karyawan'"
+                  @click="generateInvite(emp)"
+                >
+                  Kode Unik
+                </button>
                 <button class="rounded-lg px-2 py-1 text-xs text-primary-600 hover:bg-primary-50" @click="openEdit(emp)">Edit</button>
-                <button class="rounded-lg px-2 py-1 text-xs text-amber-600 hover:bg-amber-50" @click="resetPin(emp)">Reset PIN</button>
                 <button
                   class="rounded-lg px-2 py-1 text-xs hover:bg-red-50"
                   :class="emp.status === 'active' ? 'text-red-600' : 'text-gray-500'"
@@ -101,19 +115,21 @@
       </form>
     </AppModal>
 
-    <!-- Modal PIN sekali tampil -->
-    <AppModal v-if="pinModal.open" title="PIN Karyawan" @close="pinModal.open = false">
+    <!-- Modal kode unik sekali tampil -->
+    <AppModal v-if="inviteModal.open" title="Kode Unik Karyawan" @close="inviteModal.open = false">
       <div class="text-center">
-        <p class="mb-1 text-sm text-gray-500">PIN untuk <b>{{ pinModal.name }}</b></p>
-        <p class="mb-4 text-4xl font-bold tracking-widest text-primary-700">{{ pinModal.pin }}</p>
+        <p class="mb-1 text-sm text-gray-500">Kode unik untuk <b>{{ inviteModal.name }}</b></p>
+        <p class="mb-4 text-3xl font-bold tracking-widest text-indigo-700">{{ inviteModal.code }}</p>
         <div class="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-          ⚠️ PIN hanya ditampilkan <b>sekali</b>. Salin sekarang sebelum menutup jendela ini.
+          ⚠️ Kode hanya ditampilkan <b>sekali</b> dan berlaku sampai
+          <b>{{ formatDate(inviteModal.expiresAt) }}</b>. Bagikan ke karyawan lewat chat/SMS —
+          dia memakainya saat registrasi untuk menautkan akunnya.
         </div>
         <div class="flex justify-center gap-2">
-          <button class="btn-primary" @click="copyPin">📋 Salin PIN</button>
-          <button class="btn-secondary" @click="pinModal.open = false">Tutup</button>
+          <button class="btn-primary" @click="copyCode">📋 Salin Kode</button>
+          <button class="btn-secondary" @click="inviteModal.open = false">Tutup</button>
         </div>
-        <p v-if="copied" class="mt-3 text-sm text-green-600">PIN tersalin! ✓</p>
+        <p v-if="copied" class="mt-3 text-sm text-green-600">Kode tersalin! ✓</p>
       </div>
     </AppModal>
   </div>
@@ -133,6 +149,7 @@ interface Employee {
   status: string
   work_location?: { id: number; name: string } | null
   shift?: any
+  user?: { id: number; name: string; email: string } | null
 }
 
 interface WorkLocation {
@@ -160,7 +177,12 @@ const form = reactive({
 const formError = ref('')
 const saving = ref(false)
 
-const pinModal = reactive<{ open: boolean; pin: string; name: string }>({ open: false, pin: '', name: '' })
+const inviteModal = reactive<{ open: boolean; code: string; name: string; expiresAt: string | null }>({
+  open: false,
+  code: '',
+  name: '',
+  expiresAt: null,
+})
 const copied = ref(false)
 
 function openCreate() {
@@ -190,18 +212,13 @@ async function submitForm() {
   saving.value = true
   try {
     if (modal.mode === 'create') {
-      const res = await api<{ message: string; pin?: string }>('POST', '/employees', {
+      await api('POST', '/employees', {
         name: form.name,
         position: form.position || null,
         work_location_id: form.work_location_id,
         status: form.status,
       })
       modal.open = false
-      if (res.pin) {
-        pinModal.pin = String(res.pin)
-        pinModal.name = form.name
-        pinModal.open = true
-      }
     } else {
       await api('PUT', `/employees/${modal.id}`, {
         name: form.name,
@@ -216,18 +233,6 @@ async function submitForm() {
     formError.value = errorMessage(e)
   } finally {
     saving.value = false
-  }
-}
-
-async function resetPin(emp: Employee) {
-  if (!confirm(`Reset PIN untuk ${emp.name}? PIN lama tidak bisa dipakai lagi.`)) return
-  try {
-    const res = await api<{ message: string; pin: string }>('POST', `/employees/${emp.id}/reset-pin`)
-    pinModal.pin = String(res.pin)
-    pinModal.name = emp.name
-    pinModal.open = true
-  } catch (e: any) {
-    alert(errorMessage(e))
   }
 }
 
@@ -247,13 +252,33 @@ async function toggleStatus(emp: Employee) {
   }
 }
 
-async function copyPin() {
+async function generateInvite(emp: Employee) {
   try {
-    await navigator.clipboard.writeText(pinModal.pin)
+    const res = await api<{ data: { code: string; expires_at: string } }>('POST', '/invite-codes', {
+      employee_id: emp.id,
+    })
+    inviteModal.code = res.data.code
+    inviteModal.name = emp.name
+    inviteModal.expiresAt = res.data.expires_at
+    inviteModal.open = true
+    await refresh()
+  } catch (e: any) {
+    alert(errorMessage(e))
+  }
+}
+
+async function copyCode() {
+  try {
+    await navigator.clipboard.writeText(inviteModal.code)
     copied.value = true
     setTimeout(() => (copied.value = false), 2500)
   } catch {
     // clipboard tidak tersedia — biarkan user menyalin manual
   }
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return '—'
+  return value.substring(0, 10)
 }
 </script>
