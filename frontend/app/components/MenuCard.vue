@@ -44,6 +44,8 @@ const props = defineProps<{
   disabled?: boolean
 }>()
 
+const emit = defineEmits<{ click: [] }>()
+
 const colorClasses: Record<string, string> = {
   primary: 'bg-primary-600/10 text-primary-600 group-hover:bg-primary-600 group-hover:text-white',
   warning: 'bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-white',
@@ -55,5 +57,6 @@ const iconClass = computed(() => colorClasses[props.color])
 
 function go() {
   if (props.to) navigateTo(props.to)
+  else emit('click')
 }
 </script>

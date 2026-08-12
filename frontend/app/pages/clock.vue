@@ -1,7 +1,7 @@
 <template>
   <div class="relative flex min-h-screen flex-col bg-gray-900">
     <!-- Header overlay -->
-    <div class="absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-6 pb-4 pt-12">
+    <div class="absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-6 pb-4 pt-12">
       <button
         type="button"
         class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
@@ -12,8 +12,8 @@
         </svg>
       </button>
       <div class="text-center">
-        <p class="text-xs text-white/60">Absensi</p>
-        <p class="font-bold text-white">{{ isWorking ? 'Clock Out' : 'Clock In' }}</p>
+        <p class="text-xs text-white/60">{{ isForce ? 'Absensi · Tambah riwayat' : 'Absensi' }}</p>
+        <p class="font-bold text-white">{{ actionType === 'out' ? 'Clock Out' : 'Clock In' }}</p>
       </div>
       <div class="w-10"></div>
     </div>
@@ -37,29 +37,29 @@
       </div>
     </div>
 
-    <!-- Area utama: ring wajah -->
-    <div class="relative flex flex-1 items-center justify-center bg-black">
+    <!-- Area utama: wajah + background kamera terlihat -->
+    <div class="relative flex flex-1 items-center justify-center overflow-hidden bg-black">
       <video
         v-if="cameraOn"
         ref="videoEl"
         autoplay
         playsinline
         muted
-        class="absolute inset-0 h-full w-full scale-x-[-1] object-cover opacity-40"
+        class="absolute inset-0 h-full w-full scale-x-[-1] object-cover"
       ></video>
-      <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50"></div>
+      <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
 
       <div class="relative z-10 text-center">
-        <div class="relative mx-auto flex h-64 w-64 items-center justify-center rounded-full border-2 border-white/30">
-          <div class="absolute inset-0 animate-spin rounded-full border-2 border-t-transparent border-primary-500/60" style="animation-duration: 3s"></div>
-          <div class="flex h-56 w-56 items-center justify-center rounded-full bg-white/5 backdrop-blur-sm">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="h-24 w-24 text-white/20">
+        <div class="relative mx-auto flex h-64 w-64 items-center justify-center rounded-full border-2 border-white/40">
+          <div class="absolute inset-0 animate-spin rounded-full border-2 border-t-transparent border-primary-500/70" style="animation-duration: 3s"></div>
+          <div class="flex h-56 w-56 items-center justify-center rounded-full bg-white/10 backdrop-blur-[2px]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="h-24 w-24 text-white/40">
               <circle cx="12" cy="8" r="4" />
               <path d="M4 21a8 8 0 0 1 16 0" />
             </svg>
           </div>
         </div>
-        <p class="mt-6 text-sm font-medium text-white/70">{{ faceStatus }}</p>
+        <p class="mt-6 text-sm font-medium text-white/80 drop-shadow">{{ faceStatus }}</p>
       </div>
     </div>
 
@@ -69,10 +69,12 @@
         {{ message }}
       </p>
 
+      <img v-if="capturedPhoto" :src="capturedPhoto" alt="Foto absensi" class="mx-auto mb-3 h-28 rounded-xl border border-white/20 object-cover shadow-lg" />
+
       <button
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold text-white shadow-lg transition active:scale-[0.98]"
-        :class="isWorking ? 'bg-red-600 shadow-red-600/30 hover:bg-red-700' : 'bg-primary-600 shadow-primary-600/30 hover:bg-primary-700'"
+        :class="actionType === 'out' ? 'bg-red-600 shadow-red-600/30 hover:bg-red-700' : 'bg-primary-600 shadow-primary-600/30 hover:bg-primary-700'"
         :disabled="busy"
         @click="doClock"
       >
@@ -84,7 +86,7 @@
           <path d="M12 14a2.5 2.5 0 0 0 .5 5" stroke-linecap="round" />
         </svg>
         <span v-if="busy">{{ busyLabel }}</span>
-        <span v-else>{{ isWorking ? 'Clock Out Sekarang' : 'Clock In Sekarang' }}</span>
+        <span v-else>{{ actionType === 'out' ? 'Clock Out Sekarang' : 'Clock In Sekarang' }}</span>
       </button>
       <p class="mt-3 text-center text-xs text-white/40">
         Waktu server: <span class="tabular-nums">{{ clock }}</span>
@@ -96,6 +98,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: false, middleware: 'guard' })
 
+const route = useRoute()
 const auth = useAuthStore()
 
 // Admin tanpa akun karyawan tidak bisa clock — arahkan ke dashboard admin
@@ -108,22 +111,35 @@ const cameraOn = ref(false)
 let stream: MediaStream | null = null
 
 const dateStr = computed(() => new Date().toISOString().slice(0, 10))
-const { data, refresh } = useApi<any[]>(() => `/attendance/me?date=${dateStr.value}`)
-const records = computed(() => data.value || [])
+const { data, refresh } = useApi<{ data: any[] }>(() => `/attendance/me?date=${dateStr.value}`)
+const records = computed(() => data.value?.data || [])
 const lastRecord = computed(() => records.value[0] || null)
 const isWorking = computed(() => lastRecord.value?.type === 'clock_in')
+
+/** Tipe aksi: prioritas dari query ?type=in|out (dipilih lewat modal di dashboard),
+ *  fallback otomatis dari status sesi. */
+const actionType = computed<'in' | 'out'>(() => {
+  const q = route.query.type
+  if (q === 'in' || q === 'out') return q
+  return isWorking.value ? 'out' : 'in'
+})
+
+/** Mode tambah riwayat (?force=1) — lewati cek status sesi, record tetap ditambah. */
+const isForce = computed(() => route.query.force === '1' || route.query.force === 'true')
 
 const clock = ref('')
 const busy = ref(false)
 const action = ref<'in' | 'out'>('in')
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
+const capturedPhoto = ref<string | null>(null)
+let successTimer: ReturnType<typeof setTimeout> | null = null
 
 const locationName = computed(() => lastRecord.value?.work_location?.name || 'Mencari lokasi…')
 const locationRadius = computed(() => lastRecord.value?.work_location?.radius_meter ?? 100)
 const locationStatus = computed(() => (lastRecord.value ? 'Dalam Area' : 'Menunggu GPS'))
 const faceStatus = computed(() => (cameraOn.value ? 'Posisikan wajah di tengah' : 'Kamera tidak aktif'))
-const busyLabel = computed(() => (action.value === 'in' ? 'Mencari lokasi…' : 'Memproses…'))
+const busyLabel = computed(() => (action.value === 'in' ? 'Mengambil foto…' : 'Memproses…'))
 
 onMounted(() => {
   const update = () => {
@@ -136,6 +152,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (successTimer) clearTimeout(successTimer)
   stream?.getTracks().forEach((t) => t.stop())
   stream = null
 })
@@ -152,7 +169,7 @@ async function enableCamera() {
     }
     cameraOn.value = true
   } catch {
-    // Kamera tidak tersedia → tetap bisa absen (GPS saja)
+    // Kamera tidak tersedia → tetap bisa absen (GPS saja, tanpa foto)
     cameraOn.value = false
   }
 }
@@ -171,18 +188,70 @@ function getPosition(): Promise<GeolocationPosition> {
   })
 }
 
+/**
+ * Ambil frame video → gambar ke canvas (mirror, sama kayak preview),
+ * stamp overlay geolokasi di kiri bawah, lalu kompres JPEG 70% ukuran max 800px.
+ */
+function capturePhoto(pos: GeolocationPosition): string | null {
+  const video = videoEl.value
+  if (!video || video.readyState < 2 || !video.videoWidth) return null
+
+  const maxW = 800
+  const scale = Math.min(1, maxW / video.videoWidth)
+  const w = Math.round(video.videoWidth * scale)
+  const h = Math.round(video.videoHeight * scale)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+
+  // Gambar frame secara mirror (sesuai preview yang dilihat user)
+  ctx.translate(w, 0)
+  ctx.scale(-1, 1)
+  ctx.drawImage(video, 0, 0, w, h)
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+  // Overlay info geolokasi di kiri bawah
+  const barH = 64
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)'
+  ctx.fillRect(0, h - barH, w, barH)
+
+  const label = actionType.value === 'out' ? 'CLOCK OUT' : 'CLOCK IN'
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const dateTime = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 17px system-ui, sans-serif'
+  ctx.fillText(`ABSENSI • ${label}`, 12, h - barH + 19)
+  ctx.font = '12px system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+  ctx.fillText(`📍 ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`, 12, h - barH + 43)
+
+  return canvas.toDataURL('image/jpeg', 0.7)
+}
+
 async function doClock() {
-  const type = isWorking.value ? 'out' : 'in'
+  const type = actionType.value
   busy.value = true
   action.value = type
   message.value = ''
   messageType.value = 'success'
+  capturedPhoto.value = null
   try {
     const pos = await getPosition()
+    const photo = capturePhoto(pos)
+    if (photo) capturedPhoto.value = photo
+
     const res = await api<{ message: string; data: any }>('POST', `/attendance/clock-${type}`, {
       latitude: pos.coords.latitude,
       longitude: pos.coords.longitude,
-      selfie_photo: null,
+      selfie_photo: photo,
+      force: isForce.value,
     })
     message.value = res.message
     const d = res.data
@@ -190,6 +259,8 @@ async function doClock() {
       message.value += ` (jarak ${Math.round(d.distance_meter)} m)`
     }
     await refresh()
+    // Sukses → tampilkan pesan sebentar, lalu otomatis kembali ke beranda
+    successTimer = setTimeout(() => navigateTo('/dashboard'), 1500)
   } catch (e: any) {
     // Geolocation error (permission / timeout) vs API error
     if (e?.code === 1 || e?.code === 2 || e?.code === 3) {

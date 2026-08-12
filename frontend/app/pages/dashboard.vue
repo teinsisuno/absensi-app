@@ -56,9 +56,9 @@
         <MenuCard
           icon="clock"
           color="primary"
-          label="Absen"
+          label="Absensi"
           sub="Clock in/out"
-          to="/clock"
+          @click="openAbsenModal"
         />
         <MenuCard
           icon="file"
@@ -140,6 +140,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal pilih aksi absensi -->
+    <AbsenModal v-if="absenModal.open" @close="absenModal.open = false" />
   </div>
 </template>
 
@@ -157,8 +160,8 @@ const greeting = computed(() => {
 })
 
 const dateStr = computed(() => new Date().toISOString().slice(0, 10))
-const { data, pending: historyLoading } = useApi<any[]>(() => `/attendance/me?date=${dateStr.value}`)
-const todayRecords = computed(() => data.value || [])
+const { data, pending: historyLoading } = useApi<{ data: any[] }>(() => `/attendance/me?date=${dateStr.value}`)
+const todayRecords = computed(() => data.value?.data || [])
 
 const todayClockIn = computed(() => {
   const r = todayRecords.value.find((x) => x.type === 'clock_in')
@@ -178,6 +181,12 @@ const statusLabel = computed(() => {
   if (todayRecords.value.length > 0) return 'Selesai Hari Ini'
   return 'Belum Absen'
 })
+
+// --- Modal pilih aksi absensi (komponen AbsenModal) ---
+const absenModal = reactive({ open: false })
+function openAbsenModal() {
+  absenModal.open = true
+}
 
 /** Riwayat hari ini → tampilkan sebagai satu baris (kalau sudah ada absen). */
 const recentHistory = computed(() => {

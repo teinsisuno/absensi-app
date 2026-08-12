@@ -25,9 +25,14 @@ class AttendanceService
         return $latest?->type === 'clock_in' ? $latest : null;
     }
 
-    public function clockIn(Employee $employee, array $data): Attendance
+    /**
+     * Clock in. Mode normal menolak kalau sesi masih terbuka (sudah clock in).
+     * Mode force (clock in ulang) selalu menambah record — untuk riwayat tambahan
+     * (mis. masuk lagi setelah clock out).
+     */
+    public function clockIn(Employee $employee, array $data, bool $force = false): Attendance
     {
-        if ($this->openSession($employee)) {
+        if (! $force && $this->openSession($employee)) {
             throw new InvalidArgumentException('Kamu sudah clock in. Lakukan clock out dulu.');
         }
 
@@ -52,9 +57,14 @@ class AttendanceService
         ]);
     }
 
-    public function clockOut(Employee $employee, array $data): Attendance
+    /**
+     * Clock out. Mode normal menolak kalau tidak ada sesi terbuka.
+     * Mode force (clock out ulang) selalu menambah record — untuk riwayat tambahan
+     * (mis. catat pulang lagi setelah sebelumnya sudah clock out).
+     */
+    public function clockOut(Employee $employee, array $data, bool $force = false): Attendance
     {
-        if (! $this->openSession($employee)) {
+        if (! $force && ! $this->openSession($employee)) {
             throw new InvalidArgumentException('Belum ada clock in — clock out dibatalkan.');
         }
 

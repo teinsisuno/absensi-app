@@ -13,7 +13,7 @@
       <button
         type="button"
         class="relative -mt-8 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg shadow-primary-600/30 transition active:scale-95"
-        @click="navigateTo('/clock')"
+        @click="absenModal.open = true"
       >
         <FingerprintIcon class="h-6 w-6" />
       </button>
@@ -26,11 +26,16 @@
         <UserIcon :active="isActive('/profile')" />
       </NavBtn>
     </div>
+
+    <!-- Modal pilih aksi absensi (dari tombol fingerprint tengah) -->
+    <AbsenModal v-if="absenModal.open" @close="absenModal.open = false" />
   </nav>
 </template>
 
 <script setup lang="ts">
 const route = useRoute()
+
+const absenModal = reactive({ open: false })
 
 function isActive(path: string) {
   return route.path === path

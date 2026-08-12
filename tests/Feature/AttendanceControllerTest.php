@@ -150,6 +150,61 @@ class AttendanceControllerTest extends TestCase
             ->assertJsonPath('data.status', 'valid');
     }
 
+    public function test_clock_in_ulang_force_setelah_clock_out_berhasil(): void
+    {
+        $this->provisionTenant('tokoa');
+        $token = $this->setupEmployee('tokoa');
+        $this->withTenantHost('tokoa');
+
+        // in → out (sesi normal)
+        $this->withToken($token)->postJson('/api/v1/attendance/clock-in', [
+            'latitude' => self::LAT, 'longitude' => self::LNG,
+        ])->assertStatus(201);
+        $this->withToken($token)->postJson('/api/v1/attendance/clock-out', [
+            'latitude' => self::LAT, 'longitude' => self::LNG,
+        ])->assertStatus(201);
+
+        // clock in biasa TANPA force → tetap ditolak (belum ada sesi baru? tidak —
+        // sesi sudah tertutup, jadi seharusnya malah BISA). Ini menguji bahwa
+        // force tidak mengubah perilaku normal setelah sesi tertutup.
+        $this->withToken($token)->postJson('/api/v1/attendance/clock-in', [
+            'latitude' => self::LAT, 'longitude' => self::LNG,
+        ])->assertStatus(201);
+
+        // clock out ulang pakai force → nambah riwayat
+        $this->withToken($token)->postJson('/api/v1/attendance/clock-out', [
+            'latitude' => self::LAT, 'longitude' => self::LNG, 'force' => true,
+        ])->assertStatus(201);
+
+        $today = now()->format('Y-m-d');
+        $this->withToken($token)->getJson('/api/v1/attendance/me?date='.$today)
+            ->assertOk()
+            ->assertJsonCount(4, 'data')
+            ->assertJsonPath('data.0.type', 'clock_out');
+    }
+
+    public function test_clock_in_dua_kali_force_menambah_riwayat(): void
+    {
+        $this->provisionTenant('tokoa');
+        $token = $this->setupEmployee('tokoa');
+        $this->withTenantHost('tokoa');
+
+        $this->withToken($token)->postJson('/api/v1/attendance/clock-in', [
+            'latitude' => self::LAT, 'longitude' => self::LNG,
+        ])->assertStatus(201);
+
+        // clock in ulang pakai force → tetap ditambah meski sesi terbuka
+        $this->withToken($token)->postJson('/api/v1/attendance/clock-in', [
+            'latitude' => self::LAT, 'longitude' => self::LNG, 'force' => true,
+        ])->assertStatus(201);
+
+        $today = now()->format('Y-m-d');
+        $this->withToken($token)->getJson('/api/v1/attendance/me?date='.$today)
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.type', 'clock_in');
+    }
+
     public function test_riwayat_sendiri_bisa_difilter_tanggal(): void
     {
         $this->provisionTenant('tokoa');

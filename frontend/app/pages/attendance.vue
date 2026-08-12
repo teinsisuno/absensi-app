@@ -74,8 +74,8 @@ definePageMeta({ layout: 'mobile', middleware: 'guard' })
 
 const auth = useAuthStore()
 
-const { data, pending: loading } = useApi<any[]>('/attendance/me')
-const records = computed(() => data.value || [])
+const { data, pending: loading } = useApi<{ data: any[] }>('/attendance/me')
+const records = computed(() => data.value?.data || [])
 
 interface DayRow {
   date: string

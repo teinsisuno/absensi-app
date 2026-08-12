@@ -24,11 +24,12 @@ class AttendanceController extends Controller
         $validated = $request->validate([
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'selfie_photo' => ['nullable', 'string', 'max:255'],
+            'selfie_photo' => ['nullable', 'string'],
+            'force' => ['sometimes', 'boolean'],
         ]);
 
         try {
-            $attendance = $this->attendance->clockIn($employee, $validated);
+            $attendance = $this->attendance->clockIn($employee, $validated, (bool) ($validated['force'] ?? false));
 
             return response()->json([
                 'message' => 'Clock in berhasil.',
@@ -48,11 +49,12 @@ class AttendanceController extends Controller
         $validated = $request->validate([
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'selfie_photo' => ['nullable', 'string', 'max:255'],
+            'selfie_photo' => ['nullable', 'string'],
+            'force' => ['sometimes', 'boolean'],
         ]);
 
         try {
-            $attendance = $this->attendance->clockOut($employee, $validated);
+            $attendance = $this->attendance->clockOut($employee, $validated, (bool) ($validated['force'] ?? false));
 
             return response()->json([
                 'message' => 'Clock out berhasil.',
