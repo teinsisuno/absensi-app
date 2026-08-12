@@ -40,12 +40,12 @@
     <!-- Area utama: wajah + background kamera terlihat -->
     <div class="relative flex flex-1 items-center justify-center overflow-hidden bg-black">
       <video
-        v-if="cameraOn"
         ref="videoEl"
         autoplay
         playsinline
         muted
         class="absolute inset-0 h-full w-full scale-x-[-1] object-cover"
+        :class="cameraOn ? '' : 'hidden'"
       ></video>
       <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"></div>
 
@@ -88,6 +88,9 @@
         <span v-if="busy">{{ busyLabel }}</span>
         <span v-else>{{ actionType === 'out' ? 'Clock Out Sekarang' : 'Clock In Sekarang' }}</span>
       </button>
+      <p v-if="!cameraOn" class="mt-3 rounded-xl bg-amber-500/15 px-3 py-2 text-center text-xs text-amber-200">
+        ⚠️ Kamera tidak aktif — absen tetap dicatat TANPA foto selfie. Izinkan akses kamera di browser untuk verifikasi wajah.
+      </p>
       <p class="mt-3 text-center text-xs text-white/40">
         Waktu server: <span class="tabular-nums">{{ clock }}</span>
       </p>
@@ -159,9 +162,11 @@ onBeforeUnmount(() => {
 
 async function enableCamera() {
   try {
+    // Timeout longgar — di HP permission dialog butuh waktu (user baca & klik izin).
+    // Jangan race 4s yang agresif: kalau kalah, kamera "mati" padahal bisa jalan.
     stream = await Promise.race([
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('kamera timeout')), 4000)),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('kamera timeout')), 15000)),
     ])
     if (videoEl.value) {
       videoEl.value.srcObject = stream
@@ -172,6 +177,17 @@ async function enableCamera() {
     // Kamera tidak tersedia → tetap bisa absen (GPS saja, tanpa foto)
     cameraOn.value = false
   }
+}
+
+/**
+ * Aktifkan kamera khusus dari user gesture (klik tombol) — iOS Safari
+ * menolak getUserMedia kalau dipanggil bukan dari tap. Stream lama dihentikan
+ * dulu biar tidak dobel.
+ */
+async function enableCameraFromGesture() {
+  stream?.getTracks().forEach((t) => t.stop())
+  stream = null
+  await enableCamera()
 }
 
 function getPosition(): Promise<GeolocationPosition> {
@@ -191,11 +207,36 @@ function getPosition(): Promise<GeolocationPosition> {
 /**
  * Ambil frame video → gambar ke canvas (mirror, sama kayak preview),
  * stamp overlay geolokasi di kiri bawah, lalu kompres JPEG 70% ukuran max 800px.
+ *
+ * Kalau kamera belum siap (video tanpa frame), tunggu maksimal 2.5 detik —
+ * di HP frame pertama bisa datang telat setelah izin kamera. Return null
+ * hanya kalau kamera benar-benar tidak tersedia.
  */
-function capturePhoto(pos: GeolocationPosition): string | null {
-  const video = videoEl.value
-  if (!video || video.readyState < 2 || !video.videoWidth) return null
+function capturePhoto(pos: GeolocationPosition): Promise<string | null> {
+  return new Promise((resolve) => {
+    const video = videoEl.value
+    if (!video) return resolve(null)
 
+    // Kalau kamera off (getUserMedia gagal) → langsung null, absen tetap jalan
+    if (!cameraOn.value) return resolve(null)
+
+    const waitForFrame = (attempt: number) => {
+      if (video.readyState >= 2 && video.videoWidth > 0) {
+        resolve(drawPhoto(video, pos))
+        return
+      }
+      if (attempt >= 25) {
+        // 2.5 detik — frame belum ada juga, anggap kamera gagal
+        resolve(null)
+        return
+      }
+      setTimeout(() => waitForFrame(attempt + 1), 100)
+    }
+    waitForFrame(0)
+  })
+}
+
+function drawPhoto(video: HTMLVideoElement, pos: GeolocationPosition): string | null {
   const maxW = 800
   const scale = Math.min(1, maxW / video.videoWidth)
   const w = Math.round(video.videoWidth * scale)
@@ -231,6 +272,7 @@ function capturePhoto(pos: GeolocationPosition): string | null {
   ctx.font = '12px system-ui, sans-serif'
   ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
   ctx.fillText(`📍 ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`, 12, h - barH + 43)
+  void dateTime
 
   return canvas.toDataURL('image/jpeg', 0.7)
 }
@@ -244,8 +286,22 @@ async function doClock() {
   capturedPhoto.value = null
   try {
     const pos = await getPosition()
-    const photo = capturePhoto(pos)
-    if (photo) capturedPhoto.value = photo
+
+    // iOS Safari WAJIB getUserMedia dalam user gesture (klik tombol).
+    // Kalau kamera belum nyala dari onMounted, coba aktifkan sekarang.
+    if (!cameraOn.value) {
+      await enableCameraFromGesture()
+      // kasih video sedikit waktu render frame setelah stream attach
+      await new Promise((r) => setTimeout(r, 300))
+    }
+
+    const photo = await capturePhoto(pos)
+    if (photo) {
+      capturedPhoto.value = photo
+    } else if (cameraOn.value) {
+      message.value = 'Kamera aktif tapi foto gagal diambil — absen tetap dicatat tanpa foto.'
+      messageType.value = 'error'
+    }
 
     const res = await api<{ message: string; data: any }>('POST', `/attendance/clock-${type}`, {
       latitude: pos.coords.latitude,
@@ -260,7 +316,7 @@ async function doClock() {
     }
     await refresh()
     // Sukses → tampilkan pesan sebentar, lalu otomatis kembali ke beranda
-    successTimer = setTimeout(() => navigateTo('/dashboard'), 1500)
+    successTimer = setTimeout(() => navigateTo('/dashboard'), 2000)
   } catch (e: any) {
     // Geolocation error (permission / timeout) vs API error
     if (e?.code === 1 || e?.code === 2 || e?.code === 3) {
