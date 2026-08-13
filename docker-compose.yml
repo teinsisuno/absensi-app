@@ -16,8 +16,9 @@
 
 services:
   app:
-    # NO build lokal — image di-pull dari GHCR (di-push oleh GitHub Actions deploy.yml).
-    # Update otomatis ditangani Watchtower (service di bawah).
+    # ⚠️ SEMENTARA: build lokal aktif lagi (CI GHCR ke-lock billing GitHub 2026-08-13).
+    # Setelah billing beres & image GHCR ada, hapus `build: .` biar pure pull + Watchtower.
+    build: .
     image: ghcr.io/sigitsuseno/absensi-app:latest
     container_name: absensi-app
     restart: unless-stopped
