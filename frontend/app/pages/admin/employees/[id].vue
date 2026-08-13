@@ -34,19 +34,22 @@
 
       <!-- Biodata -->
       <div v-if="tab === 'biodata'" class="card max-w-2xl p-6">
-        <div class="mb-5 flex items-center gap-4">
-          <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-primary-100 text-2xl font-bold text-primary-700">
-            <img v-if="employee.photo" :src="employee.photo" alt="" class="h-full w-full object-cover" />
-            <span v-else>{{ employee.name.charAt(0).toUpperCase() }}</span>
+        <div class="mb-5 flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-primary-100 text-2xl font-bold text-primary-700">
+              <img v-if="employee.photo" :src="employee.photo" alt="" class="h-full w-full object-cover" />
+              <span v-else>{{ employee.name.charAt(0).toUpperCase() }}</span>
+            </div>
+            <div>
+              <p class="text-lg font-semibold text-gray-900">{{ employee.name }}</p>
+              <p class="text-sm text-gray-500">{{ employee.user?.email || 'Belum ada akun ter-link' }}</p>
+            </div>
           </div>
-          <div>
-            <p class="text-lg font-semibold text-gray-900">{{ employee.name }}</p>
-            <p class="text-sm text-gray-500">{{ employee.user?.email || 'Belum ada akun ter-link' }}</p>
-          </div>
+          <button class="btn-secondary !px-3 !py-1.5 text-sm" @click="openEmpEdit">✏️ Edit</button>
         </div>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <InfoRow label="Jabatan" :value="employee.position || '—'" />
-          <InfoRow label="Role Mobile" :value="roleLabel(employee.mobile_role)" />
+          <InfoRow icon="id" label="Jabatan" :value="employee.position || '—'" />
+          <InfoRow icon="shift" label="Role Mobile" :value="roleLabel(employee.mobile_role)" />
           <InfoRow label="Lokasi Kerja" :value="employee.work_location?.name || '—'" />
           <InfoRow label="Shift" :value="employee.shift?.name || '—'" />
           <InfoRow label="Supervisor" :value="employee.supervisor?.name || '—'" />
@@ -55,24 +58,14 @@
       </div>
 
       <!-- Dokumen -->
-      <div v-if="tab === 'dokumen'" class="card max-w-2xl p-6">
-        <h3 class="mb-4 font-semibold text-gray-900">Dokumen</h3>
-        <div v-if="!employee.documents?.length" class="text-sm text-gray-400">Belum ada dokumen.</div>
-        <div v-else class="space-y-2">
-          <div v-for="doc in employee.documents" :key="doc.id" class="flex items-center gap-3 rounded-lg border border-gray-100 p-3">
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600">📄</div>
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium text-gray-800">{{ doc.title }}</p>
-              <p class="text-xs text-gray-400">{{ doc.document_type }} · {{ doc.document_number || '—' }}</p>
-            </div>
-            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{{ doc.verification_status }}</span>
-          </div>
-        </div>
-      </div>
+      <EmployeeDocumentEditor v-if="tab === 'dokumen'" :employee-id="route.params.id" />
 
       <!-- Detail personal -->
       <div v-if="tab === 'detail'" class="card max-w-2xl p-6">
-        <h3 class="mb-4 font-semibold text-gray-900">Detail Personal</h3>
+        <div class="mb-4 flex items-center justify-between">
+          <h3 class="font-semibold text-gray-900">Detail Personal</h3>
+          <button class="btn-secondary !px-3 !py-1.5 text-sm" @click="openDetailEdit">✏️ Edit</button>
+        </div>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <InfoRow label="NIK" :value="employee.detail?.nik || '—'" />
           <InfoRow label="Gender" :value="genderLabel(employee.detail?.gender)" />
@@ -80,58 +73,24 @@
           <InfoRow label="Tanggal Lahir" :value="formatDate(employee.detail?.date_of_birth)" />
           <InfoRow label="Agama" :value="employee.detail?.religion || '—'" />
           <InfoRow label="Status Nikah" :value="employee.detail?.marital_status || '—'" />
+          <InfoRow label="Gol. Darah" :value="employee.detail?.blood_type || '—'" />
           <InfoRow label="No. HP" :value="employee.detail?.phone || '—'" />
           <InfoRow label="Email" :value="employee.detail?.email || '—'" />
+          <InfoRow label="NPWP" :value="employee.detail?.npwp || '—'" />
+          <InfoRow label="Kontak Darurat" :value="employee.detail?.emergency_contact_name || '—'" />
+          <InfoRow label="HP Darurat" :value="employee.detail?.emergency_contact_phone || '—'" />
           <InfoRow label="Alamat" :value="employee.detail?.address || '—'" />
         </div>
       </div>
 
       <!-- Bank -->
-      <div v-if="tab === 'bank'" class="card max-w-2xl p-6">
-        <h3 class="mb-4 font-semibold text-gray-900">Rekening Bank</h3>
-        <div v-if="!employee.banks?.length" class="text-sm text-gray-400">Belum ada data rekening.</div>
-        <div v-else class="space-y-2">
-          <div v-for="bank in employee.banks" :key="bank.id" class="flex items-center justify-between rounded-lg border border-gray-100 p-3">
-            <div>
-              <p class="text-sm font-medium text-gray-800">{{ bank.bank_name }}</p>
-              <p class="text-xs text-gray-400">{{ bank.account_number }} · {{ bank.account_holder }}</p>
-            </div>
-            <span v-if="bank.is_primary" class="rounded-full bg-primary-50 px-2 py-0.5 text-xs text-primary-600">Utama</span>
-          </div>
-        </div>
-      </div>
+      <EmployeeBankEditor v-if="tab === 'bank'" :employee-id="route.params.id" />
 
       <!-- Keluarga -->
-      <div v-if="tab === 'keluarga'" class="card max-w-2xl p-6">
-        <h3 class="mb-4 font-semibold text-gray-900">Keluarga</h3>
-        <div v-if="!employee.families?.length" class="text-sm text-gray-400">Belum ada data keluarga.</div>
-        <div v-else class="space-y-2">
-          <div v-for="fam in employee.families" :key="fam.id" class="flex items-center justify-between rounded-lg border border-gray-100 p-3">
-            <div>
-              <p class="text-sm font-medium text-gray-800">{{ fam.name }}</p>
-              <p class="text-xs text-gray-400">{{ fam.relation }}</p>
-            </div>
-            <span class="text-xs text-gray-400">{{ fam.phone || '—' }}</span>
-          </div>
-        </div>
-      </div>
+      <EmployeeFamilyEditor v-if="tab === 'keluarga'" :employee-id="route.params.id" />
 
       <!-- Kontrak -->
-      <div v-if="tab === 'kontrak'" class="card max-w-2xl p-6">
-        <h3 class="mb-4 font-semibold text-gray-900">Kontrak Kerja</h3>
-        <div v-if="!employee.contracts?.length" class="text-sm text-gray-400">Belum ada data kontrak.</div>
-        <div v-else class="space-y-2">
-          <div v-for="c in employee.contracts" :key="c.id" class="rounded-lg border border-gray-100 p-3">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-medium text-gray-800">{{ c.contract_number }}</p>
-              <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs uppercase text-gray-500">{{ c.type }}</span>
-            </div>
-            <p class="mt-1 text-xs text-gray-400">
-              {{ formatDate(c.start_date) }} – {{ formatDate(c.end_date) }}
-            </p>
-          </div>
-        </div>
-      </div>
+      <EmployeeContractEditor v-if="tab === 'kontrak'" :employee-id="route.params.id" />
 
       <!-- Face -->
       <div v-if="tab === 'face'" class="card max-w-2xl p-6">
@@ -170,6 +129,133 @@
         </div>
       </div>
     </template>
+
+    <!-- Modal edit biodata kepegawaian -->
+    <AppModal v-if="empModal.open" title="Edit Karyawan" @close="empModal.open = false">
+      <form @submit.prevent="saveEmp">
+        <div class="mb-4">
+          <label class="label">Nama <span class="text-red-500">*</span></label>
+          <input v-model="empForm.name" type="text" class="input" required />
+        </div>
+        <div class="mb-4">
+          <label class="label">Jabatan</label>
+          <input v-model="empForm.position" type="text" class="input" placeholder="mis. Kasir" />
+        </div>
+        <div class="mb-4">
+          <label class="label">Role Mobile</label>
+          <select v-model="empForm.mobile_role" class="input">
+            <option value="karyawan">Karyawan</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="management">Management</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="label">Lokasi Kerja</label>
+          <select v-model="empForm.work_location_id" class="input">
+            <option :value="null">— Tanpa lokasi —</option>
+            <option v-for="loc in locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="label">Shift</label>
+          <select v-model="empForm.shift_id" class="input">
+            <option :value="null">— Tanpa shift —</option>
+            <option v-for="s in shifts" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="label">Status</label>
+          <select v-model="empForm.status" class="input">
+            <option value="active">Aktif</option>
+            <option value="inactive">Nonaktif</option>
+          </select>
+        </div>
+
+        <p v-if="empFormError" class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ empFormError }}</p>
+
+        <div class="flex justify-end gap-2">
+          <button type="button" class="btn-secondary" @click="empModal.open = false">Batal</button>
+          <button type="submit" class="btn-primary" :disabled="empSaving">{{ empSaving ? 'Menyimpan…' : 'Simpan' }}</button>
+        </div>
+      </form>
+    </AppModal>
+
+    <!-- Modal edit detail personal -->
+    <AppModal v-if="detailModal.open" title="Edit Detail Personal" wide @close="detailModal.open = false">
+      <form @submit.prevent="saveDetail">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="label">NIK</label>
+            <input v-model="detailForm.nik" type="text" class="input" />
+          </div>
+          <div>
+            <label class="label">Jenis Kelamin</label>
+            <select v-model="detailForm.gender" class="input">
+              <option value="">—</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Tempat Lahir</label>
+            <input v-model="detailForm.place_of_birth" type="text" class="input" />
+          </div>
+          <div>
+            <label class="label">Tanggal Lahir</label>
+            <input v-model="detailForm.date_of_birth" type="date" class="input" />
+          </div>
+          <div>
+            <label class="label">Agama</label>
+            <input v-model="detailForm.religion" type="text" class="input" placeholder="mis. Islam" />
+          </div>
+          <div>
+            <label class="label">Status Nikah</label>
+            <select v-model="detailForm.marital_status" class="input">
+              <option value="">—</option>
+              <option value="Belum Menikah">Belum Menikah</option>
+              <option value="Menikah">Menikah</option>
+              <option value="Cerai">Cerai</option>
+              <option value="Cerai Mati">Cerai Mati</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Gol. Darah</label>
+            <input v-model="detailForm.blood_type" type="text" class="input" placeholder="mis. O" />
+          </div>
+          <div>
+            <label class="label">No. HP</label>
+            <input v-model="detailForm.phone" type="text" class="input" />
+          </div>
+          <div>
+            <label class="label">Email</label>
+            <input v-model="detailForm.email" type="email" class="input" />
+          </div>
+          <div>
+            <label class="label">NPWP</label>
+            <input v-model="detailForm.npwp" type="text" class="input" placeholder="00.000.000.0-000.000" />
+          </div>
+          <div>
+            <label class="label">Kontak Darurat</label>
+            <input v-model="detailForm.emergency_contact_name" type="text" class="input" />
+          </div>
+          <div>
+            <label class="label">HP Darurat</label>
+            <input v-model="detailForm.emergency_contact_phone" type="text" class="input" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="label">Alamat</label>
+            <textarea v-model="detailForm.address" rows="2" class="input"></textarea>
+          </div>
+        </div>
+
+        <p v-if="detailFormError" class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ detailFormError }}</p>
+
+        <div class="mt-4 flex justify-end gap-2">
+          <button type="button" class="btn-secondary" @click="detailModal.open = false">Batal</button>
+          <button type="submit" class="btn-primary" :disabled="detailSaving">{{ detailSaving ? 'Menyimpan…' : 'Simpan' }}</button>
+        </div>
+      </form>
+    </AppModal>
   </div>
 </template>
 
@@ -194,12 +280,23 @@ const tab = ref('biodata')
 const loading = ref(true)
 const employee = ref<any>(null)
 
+const locations = ref<any[]>([])
+const shifts = ref<any[]>([])
+
 const attendanceLoading = ref(false)
 const attendanceDays = ref<any[]>([])
 const fromDate = ref('')
 const toDate = ref('')
 
 onMounted(async () => {
+  await Promise.all([
+    loadEmployee(),
+    loadOptions(),
+  ])
+  loadAttendance()
+})
+
+async function loadEmployee() {
   try {
     const data = await api<{ data: any }>('GET', `/employees/${route.params.id}`)
     employee.value = data.data
@@ -208,8 +305,20 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-  loadAttendance()
-})
+}
+
+async function loadOptions() {
+  try {
+    const [locRes, shiftRes] = await Promise.all([
+      api<{ data: any[] }>('GET', '/work-locations'),
+      api<{ data: any[] }>('GET', '/shifts'),
+    ])
+    locations.value = locRes.data
+    shifts.value = shiftRes.data
+  } catch {
+    // options opsional — biarkan kosong
+  }
+}
 
 async function loadAttendance() {
   attendanceLoading.value = true
@@ -223,13 +332,6 @@ async function loadAttendance() {
     const res = await api<{ data: { employees: any[] } }>('GET', `/attendance/roster?from=${fmt(from)}&to=${fmt(to)}`)
     const row = (res.data?.employees || []).find((e: any) => e.id === Number(route.params.id))
     if (row?.days) {
-      attendanceDays.value = row.days.map((d: any, i: number) => ({
-        date: '',
-        day: '',
-        clock_in: d.clock_in,
-        clock_out: d.clock_out,
-        has: !!d.clock_in,
-      }))
       const days = res.data?.dates || []
       attendanceDays.value = row.days.map((d: any, i: number) => {
         const date = new Date(days[i] + 'T00:00:00')
@@ -246,6 +348,122 @@ async function loadAttendance() {
     attendanceDays.value = []
   } finally {
     attendanceLoading.value = false
+  }
+}
+
+/* ---------- Modal edit biodata kepegawaian ---------- */
+
+const empModal = reactive<{ open: boolean }>({ open: false })
+const empForm = reactive({
+  name: '',
+  position: '',
+  mobile_role: 'karyawan',
+  work_location_id: null as number | null,
+  shift_id: null as number | null,
+  status: 'active',
+})
+const empFormError = ref('')
+const empSaving = ref(false)
+
+function openEmpEdit() {
+  empForm.name = employee.value.name
+  empForm.position = employee.value.position || ''
+  empForm.mobile_role = employee.value.mobile_role || 'karyawan'
+  empForm.work_location_id = employee.value.work_location_id ?? null
+  empForm.shift_id = employee.value.shift_id ?? null
+  empForm.status = employee.value.status
+  empFormError.value = ''
+  empModal.open = true
+}
+
+async function saveEmp() {
+  empFormError.value = ''
+  empSaving.value = true
+  try {
+    await api('PUT', `/employees/${route.params.id}`, {
+      name: empForm.name,
+      position: empForm.position || null,
+      mobile_role: empForm.mobile_role,
+      work_location_id: empForm.work_location_id,
+      shift_id: empForm.shift_id,
+      status: empForm.status,
+    })
+    toast.success('Karyawan diperbarui.')
+    empModal.open = false
+    await loadEmployee()
+  } catch (e: any) {
+    empFormError.value = errorMessage(e)
+  } finally {
+    empSaving.value = false
+  }
+}
+
+/* ---------- Modal edit detail personal ---------- */
+
+const detailModal = reactive<{ open: boolean }>({ open: false })
+const detailForm = reactive({
+  nik: '',
+  gender: '',
+  religion: '',
+  blood_type: '',
+  marital_status: '',
+  place_of_birth: '',
+  date_of_birth: '',
+  address: '',
+  phone: '',
+  email: '',
+  emergency_contact_name: '',
+  emergency_contact_phone: '',
+  npwp: '',
+})
+const detailFormError = ref('')
+const detailSaving = ref(false)
+
+function openDetailEdit() {
+  const d = employee.value.detail || {}
+  detailForm.nik = d.nik || ''
+  detailForm.gender = d.gender || ''
+  detailForm.religion = d.religion || ''
+  detailForm.blood_type = d.blood_type || ''
+  detailForm.marital_status = d.marital_status || ''
+  detailForm.place_of_birth = d.place_of_birth || ''
+  detailForm.date_of_birth = d.date_of_birth ? d.date_of_birth.substring(0, 10) : ''
+  detailForm.address = d.address || ''
+  detailForm.phone = d.phone || ''
+  detailForm.email = d.email || ''
+  detailForm.emergency_contact_name = d.emergency_contact_name || ''
+  detailForm.emergency_contact_phone = d.emergency_contact_phone || ''
+  detailForm.npwp = d.npwp || ''
+  detailFormError.value = ''
+  detailModal.open = true
+}
+
+async function saveDetail() {
+  detailFormError.value = ''
+  detailSaving.value = true
+  try {
+    await api('PUT', `/employees/${route.params.id}/detail`, {
+      nik: detailForm.nik || null,
+      gender: detailForm.gender || null,
+      religion: detailForm.religion || null,
+      blood_type: detailForm.blood_type || null,
+      marital_status: detailForm.marital_status || null,
+      place_of_birth: detailForm.place_of_birth || null,
+      date_of_birth: detailForm.date_of_birth || null,
+      address: detailForm.address || null,
+      phone: detailForm.phone || null,
+      email: detailForm.email || null,
+      emergency_contact_name: detailForm.emergency_contact_name || null,
+      emergency_contact_phone: detailForm.emergency_contact_phone || null,
+      npwp: detailForm.npwp || null,
+    })
+    toast.success('Detail personal diperbarui.')
+    detailModal.open = false
+    await loadEmployee()
+  } catch (e: any) {
+    detailFormError.value = errorMessage(e)
+  } finally {
+    detailSaving.value = false
   }
 }
 

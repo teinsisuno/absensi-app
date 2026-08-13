@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\EmployeeGroupController;
+use App\Http\Controllers\Api\V1\EmployeeSubmoduleController;
 use App\Http\Controllers\Api\V1\FaceController;
 use App\Http\Controllers\Api\V1\HolidayController;
 use App\Http\Controllers\Api\V1\InviteCodeController;
@@ -81,6 +82,25 @@ Route::middleware([
     // Admin (superadmin/HR) — kelola karyawan, kode unik, lokasi kerja
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::apiResource('/employees', EmployeeController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+
+        // Submodule data karyawan (detail 1:1, bank, keluarga, kontrak, dokumen)
+        Route::put('/employees/{employee}/detail', [EmployeeSubmoduleController::class, 'updateDetail']);
+        Route::get('/employees/{employee}/banks', [EmployeeSubmoduleController::class, 'indexBanks']);
+        Route::post('/employees/{employee}/banks', [EmployeeSubmoduleController::class, 'storeBank']);
+        Route::put('/employees/{employee}/banks/{bank}', [EmployeeSubmoduleController::class, 'updateBank']);
+        Route::delete('/employees/{employee}/banks/{bank}', [EmployeeSubmoduleController::class, 'destroyBank']);
+        Route::get('/employees/{employee}/families', [EmployeeSubmoduleController::class, 'indexFamilies']);
+        Route::post('/employees/{employee}/families', [EmployeeSubmoduleController::class, 'storeFamily']);
+        Route::put('/employees/{employee}/families/{family}', [EmployeeSubmoduleController::class, 'updateFamily']);
+        Route::delete('/employees/{employee}/families/{family}', [EmployeeSubmoduleController::class, 'destroyFamily']);
+        Route::get('/employees/{employee}/contracts', [EmployeeSubmoduleController::class, 'indexContracts']);
+        Route::post('/employees/{employee}/contracts', [EmployeeSubmoduleController::class, 'storeContract']);
+        Route::put('/employees/{employee}/contracts/{contract}', [EmployeeSubmoduleController::class, 'updateContract']);
+        Route::delete('/employees/{employee}/contracts/{contract}', [EmployeeSubmoduleController::class, 'destroyContract']);
+        Route::get('/employees/{employee}/documents', [EmployeeSubmoduleController::class, 'indexDocuments']);
+        Route::post('/employees/{employee}/documents', [EmployeeSubmoduleController::class, 'storeDocument']);
+        Route::put('/employees/{employee}/documents/{document}', [EmployeeSubmoduleController::class, 'updateDocument']);
+        Route::delete('/employees/{employee}/documents/{document}', [EmployeeSubmoduleController::class, 'destroyDocument']);
         Route::apiResource('/invite-codes', InviteCodeController::class)->only(['index', 'store']);
         Route::apiResource('/work-locations', WorkLocationController::class)->except(['show']);
 
