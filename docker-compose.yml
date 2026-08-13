@@ -16,6 +16,7 @@
 
 services:
   app:
+    build: .
     image: ghcr.io/sigitsuseno/absensi-app:latest
     container_name: absensi-app
     restart: unless-stopped

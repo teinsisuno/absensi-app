@@ -38,6 +38,9 @@ done
 echo "[entrypoint] Menjalankan migrasi central..."
 su -s /bin/sh www-data -c "cd /var/www/html && php artisan migrate --force --no-interaction"
 
+echo "[entrypoint] Menjalankan migrasi tenant (otomatis tiap start)..."
+su -s /bin/sh www-data -c "cd /var/www/html && php artisan tenants:migrate --force --no-interaction" || echo "[entrypoint] tenants:migrate gagal — cek log"
+
 echo "[entrypoint] Link storage..."
 su -s /bin/sh www-data -c "cd /var/www/html && php artisan storage:link --no-interaction" || true
 
