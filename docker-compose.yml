@@ -90,6 +90,9 @@ services:
       WATCHTOWER_POLL_INTERVAL: "60"
       WATCHTOWER_CLEANUP: "true"
       WATCHTOWER_LABEL_ENABLE: "true"
+      # Fix: watchtower v1.7.x pin docker client lama (API 1.25) → error di engine baru
+      # (min API 1.40). Paksa API version yang didukung engine 29.x.
+      DOCKER_API_VERSION: "1.44"
 
 volumes:
   absensi-storage:
