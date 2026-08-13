@@ -157,6 +157,8 @@ Route::middleware([
         // Pengaturan tenant
         Route::get('/settings', [SettingsController::class, 'index']);
         Route::put('/settings', [SettingsController::class, 'update']);
+        Route::post('/settings/whatsapp/test', [SettingsController::class, 'testWhatsApp']);
+        Route::get('/settings/whatsapp/status', [SettingsController::class, 'whatsappStatus']);
     });
 
     // Pengumuman — semua user login (bukan cuma admin) boleh baca yang sudah publish

@@ -15,6 +15,9 @@ class SettingsService
         'invite_expiry_hours' => '48',
         'default_radius_meter' => '100',
         'notify_email_hr' => 'false',
+        'whatsapp_enabled' => 'false',
+        'whatsapp_gateway_url' => '',
+        'whatsapp_api_token' => '',
     ];
 
     /**

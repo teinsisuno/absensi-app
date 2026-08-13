@@ -74,6 +74,12 @@
             ⚠️ Kode hanya ditampilkan <b>sekali</b> dan berlaku sampai
             <b>{{ formatDate(genModal.result.expires_at) }}</b>. Bagikan ke karyawan lewat chat/SMS.
           </div>
+          <div v-if="genModal.result.whatsapp_sent" class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            ✅ Kode terkirim otomatis ke WhatsApp karyawan.
+          </div>
+          <div v-else-if="genModal.result.whatsapp_note" class="mb-4 rounded-lg bg-yellow-50 px-3 py-2 text-sm text-yellow-700">
+            ⚠️ {{ genModal.result.whatsapp_note }}
+          </div>
           <div class="flex justify-center gap-2">
             <button class="btn-primary" @click="copyResult">📋 Salin Kode</button>
             <button class="btn-secondary" @click="closeGen">Selesai</button>
@@ -139,7 +145,7 @@ const genModal = reactive<{
   open: boolean
   employeeId: number | null
   employeeName: string
-  result: { code: string; expires_at: string } | null
+  result: { code: string; expires_at: string; whatsapp_sent?: boolean; whatsapp_note?: string | null } | null
   error: string
 }>({ open: false, employeeId: null, employeeName: '', result: null, error: '' })
 const saving = ref(false)

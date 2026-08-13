@@ -2,44 +2,98 @@
   <div>
     <div class="mb-6">
       <h1 class="text-xl font-semibold text-gray-900">Pengaturan</h1>
-      <p class="text-sm text-gray-500">Konfigurasi tenant (mode wajah, kode unik, radius absen)</p>
+      <p class="text-sm text-gray-500">Konfigurasi tenant (mode wajah, kode unik, radius absen, WhatsApp)</p>
     </div>
 
     <SkeletonLoader v-if="loading" />
 
-    <div v-else class="card max-w-2xl">
-      <form @submit.prevent="submit">
-        <div class="mb-5">
-          <label class="label">Face Recognition Mode</label>
-          <select v-model="form.face_mode" class="input">
-            <option value="server">Server-side (matching di server)</option>
-            <option value="client">Client-side (matching di device)</option>
-          </select>
-          <p class="mt-1 text-xs text-gray-400">Cara template wajah dicocokkan saat absen. Default: server.</p>
+    <div v-else class="space-y-6">
+      <!-- Umum -->
+      <div class="card max-w-2xl">
+        <h2 class="mb-4 text-sm font-semibold text-gray-700">Umum</h2>
+        <form @submit.prevent="submit">
+          <div class="mb-5">
+            <label class="label">Face Recognition Mode</label>
+            <select v-model="form.face_mode" class="input">
+              <option value="server">Server-side (matching di server)</option>
+              <option value="client">Client-side (matching di device)</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-400">Cara template wajah dicocokkan saat absen. Default: server.</p>
+          </div>
+
+          <div class="mb-5">
+            <label class="label">Masa Berlaku Kode Unik (jam)</label>
+            <input v-model="form.invite_expiry_hours" type="number" min="1" max="720" class="input" />
+            <p class="mt-1 text-xs text-gray-400">Berapa jam kode unik link akun berlaku. Default: 48 jam.</p>
+          </div>
+
+          <div class="mb-5">
+            <label class="label">Default Radius Absen (meter)</label>
+            <input v-model="form.default_radius_meter" type="number" min="10" max="10000" class="input" />
+            <p class="mt-1 text-xs text-gray-400">Jarak maksimal dari titik lokasi agar absen diterima. Default: 100 m.</p>
+          </div>
+
+          <div class="mb-5 flex items-center gap-2">
+            <input id="notify_email_hr" v-model="form.notify_email_hr" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" />
+            <label for="notify_email_hr" class="text-sm text-gray-700">Kirim notifikasi email ke HR saat ada pengajuan baru</label>
+          </div>
+
+          <p v-if="formError" class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ formError }}</p>
+          <p v-if="saved" class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">✓ Pengaturan disimpan.</p>
+
+          <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan Pengaturan' }}</button>
+        </form>
+      </div>
+
+      <!-- WhatsApp Gateway -->
+      <div class="card max-w-2xl">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-gray-700">WhatsApp Gateway</h2>
+          <span
+            class="rounded-full px-2 py-0.5 text-xs font-medium"
+            :class="waStatusBadge"
+          >
+            {{ waStatusLabel }}
+          </span>
         </div>
+        <p class="mb-4 text-xs text-gray-400">
+          Kirim kode unik registrasi otomatis ke WhatsApp karyawan. Butuh bot
+          <code class="rounded bg-gray-100 px-1">whatsapp-bot</code> yang sudah login (scan QR) dan API-nya berjalan.
+        </p>
 
-        <div class="mb-5">
-          <label class="label">Masa Berlaku Kode Unik (jam)</label>
-          <input v-model="form.invite_expiry_hours" type="number" min="1" max="720" class="input" />
-          <p class="mt-1 text-xs text-gray-400">Berapa jam kode unik link akun berlaku. Default: 48 jam.</p>
-        </div>
+        <form @submit.prevent="submit">
+          <div class="mb-5 flex items-center gap-2">
+            <input id="whatsapp_enabled" v-model="form.whatsapp_enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" />
+            <label for="whatsapp_enabled" class="text-sm text-gray-700">Aktifkan kirim kode unik via WhatsApp</label>
+          </div>
 
-        <div class="mb-5">
-          <label class="label">Default Radius Absen (meter)</label>
-          <input v-model="form.default_radius_meter" type="number" min="10" max="10000" class="input" />
-          <p class="mt-1 text-xs text-gray-400">Jarak maksimal dari titik lokasi agar absen diterima. Default: 100 m.</p>
-        </div>
+          <div class="mb-5">
+            <label class="label">URL Gateway</label>
+            <input v-model="form.whatsapp_gateway_url" type="url" class="input" placeholder="http://127.0.0.1:3001" />
+            <p class="mt-1 text-xs text-gray-400">Alamat HTTP API whatsapp-bot (tanpa trailing slash).</p>
+          </div>
 
-        <div class="mb-5 flex items-center gap-2">
-          <input id="notify_email_hr" v-model="form.notify_email_hr" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" />
-          <label for="notify_email_hr" class="text-sm text-gray-700">Kirim notifikasi email ke HR saat ada pengajuan baru</label>
-        </div>
+          <div class="mb-5">
+            <label class="label">API Token</label>
+            <input v-model="form.whatsapp_api_token" type="password" class="input" placeholder="token dari .env whatsapp-bot" />
+            <p class="mt-1 text-xs text-gray-400">Nilai <code class="rounded bg-gray-100 px-1">API_TOKEN</code> di file .env whatsapp-bot.</p>
+          </div>
 
-        <p v-if="formError" class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ formError }}</p>
-        <p v-if="saved" class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">✓ Pengaturan disimpan.</p>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan Pengaturan' }}</button>
+            <button type="button" class="btn-secondary" :disabled="waChecking" @click="checkStatus">
+              {{ waChecking ? 'Mengecek…' : '🔄 Cek Status Gateway' }}
+            </button>
+            <button type="button" class="btn-secondary" :disabled="waTesting" @click="sendTest">
+              {{ waTesting ? 'Mengirim…' : '📨 Kirim Test' }}
+            </button>
+            <input v-model="testPhone" type="tel" class="input w-44" placeholder="Nomor test, mis. 0812…" />
+          </div>
 
-        <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan Pengaturan' }}</button>
-      </form>
+          <p v-if="waError" class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ waError }}</p>
+          <p v-if="waSuccess" class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ waSuccess }}</p>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -59,6 +113,33 @@ const form = reactive({
   invite_expiry_hours: '48',
   default_radius_meter: '100',
   notify_email_hr: false,
+  whatsapp_enabled: false,
+  whatsapp_gateway_url: '',
+  whatsapp_api_token: '',
+})
+
+// Status gateway (opsional, non-blocking)
+const waStatus = ref<any>(null)
+const waChecking = ref(false)
+const waTesting = ref(false)
+const waError = ref('')
+const waSuccess = ref('')
+const testPhone = ref('')
+
+const waStatusLabel = computed(() => {
+  if (!form.whatsapp_enabled) return 'Nonaktif'
+  if (!waStatus.value) return 'Belum dicek'
+  if (waStatus.value.error) return 'Error'
+  if (waStatus.value.connected) return 'Terhubung'
+  return 'Menunggu QR'
+})
+
+const waStatusBadge = computed(() => {
+  if (!form.whatsapp_enabled) return 'bg-gray-100 text-gray-500'
+  if (!waStatus.value) return 'bg-gray-100 text-gray-500'
+  if (waStatus.value.error) return 'bg-red-100 text-red-700'
+  if (waStatus.value.connected) return 'bg-green-100 text-green-700'
+  return 'bg-amber-100 text-amber-700'
 })
 
 onMounted(async () => {
@@ -69,6 +150,10 @@ onMounted(async () => {
     form.invite_expiry_hours = s.invite_expiry_hours || '48'
     form.default_radius_meter = s.default_radius_meter || '100'
     form.notify_email_hr = s.notify_email_hr === 'true'
+    form.whatsapp_enabled = s.whatsapp_enabled === 'true'
+    form.whatsapp_gateway_url = s.whatsapp_gateway_url || ''
+    form.whatsapp_api_token = s.whatsapp_api_token || ''
+    if (form.whatsapp_enabled) checkStatus()
   } catch (e: any) {
     toast.error(errorMessage(e, 'Gagal memuat pengaturan.'))
   } finally {
@@ -87,6 +172,9 @@ async function submit() {
         invite_expiry_hours: String(Number(form.invite_expiry_hours) || 48),
         default_radius_meter: String(Number(form.default_radius_meter) || 100),
         notify_email_hr: form.notify_email_hr ? 'true' : 'false',
+        whatsapp_enabled: form.whatsapp_enabled ? 'true' : 'false',
+        whatsapp_gateway_url: form.whatsapp_gateway_url.trim(),
+        whatsapp_api_token: form.whatsapp_api_token.trim(),
       },
     })
     saved.value = true
@@ -96,6 +184,49 @@ async function submit() {
     formError.value = errorMessage(e, 'Gagal menyimpan pengaturan.')
   } finally {
     saving.value = false
+  }
+}
+
+async function checkStatus() {
+  waChecking.value = true
+  waError.value = ''
+  waSuccess.value = ''
+  try {
+    // Simpan dulu biar gateway pakai konfigurasi terbaru
+    await submit()
+    const res = await api<{ data: any }>('GET', '/settings/whatsapp/status')
+    waStatus.value = res.data
+    if (res.data?.error) waError.value = 'Status: ' + res.data.error
+    else if (res.data?.connected) waSuccess.value = 'Gateway terhubung sebagai ' + (res.data.name || res.data.number || 'bot')
+    else waSuccess.value = 'Gateway aktif — menunggu scan QR / bot belum siap.'
+  } catch (e: any) {
+    waError.value = errorMessage(e, 'Gagal cek status.')
+  } finally {
+    waChecking.value = false
+  }
+}
+
+async function sendTest() {
+  if (!testPhone.value.trim()) {
+    waError.value = 'Isi nomor tujuan test dulu.'
+    return
+  }
+  waError.value = ''
+  waSuccess.value = ''
+  waTesting.value = true
+  try {
+    // Kirim Test = otomatis aktifkan gateway + simpan dulu, biar langsung jalan
+    if (!form.whatsapp_enabled) {
+      form.whatsapp_enabled = true
+      toast.info('WhatsApp Gateway otomatis diaktifkan.')
+    }
+    await submit()
+    await api('POST', '/settings/whatsapp/test', { phone: testPhone.value.trim() })
+    waSuccess.value = 'Pesan test terkirim! Cek WhatsApp nomor ' + testPhone.value.trim() + '.'
+  } catch (e: any) {
+    waError.value = errorMessage(e, 'Gagal kirim test.')
+  } finally {
+    waTesting.value = false
   }
 }
 </script>

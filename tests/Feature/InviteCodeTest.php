@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\EmployeeDetail;
 use App\Models\InviteCode;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class InviteCodeTest extends TestCase
@@ -231,6 +234,48 @@ class InviteCodeTest extends TestCase
             ->postJson('/api/v1/auth/link-employee', ['code' => $code2])
             ->assertStatus(422)
             ->assertJsonPath('message', fn (string $m) => str_contains($m, 'sudah ter-link ke karyawan lain'));
+    }
+
+    public function test_generate_kode_unik_auto_kirim_whatsapp_kalau_aktif_dan_punya_nomor(): void
+    {
+        Http::fake([
+            '*/api/send-code' => Http::response(['success' => true, 'id' => 'WA-1']),
+        ]);
+
+        $this->provisionTenant('tokoa');
+        $employee = $this->createEmployee('tokoa');
+
+        tenancy()->initialize('tokoa');
+        Setting::updateOrCreate(['key' => 'whatsapp_enabled'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'whatsapp_gateway_url'], ['value' => 'http://127.0.0.1:3001']);
+        Setting::updateOrCreate(['key' => 'whatsapp_api_token'], ['value' => 'rahasia123']);
+        EmployeeDetail::create(['employee_id' => $employee->id, 'phone' => '081234567890']);
+        tenancy()->end();
+
+        $this->withTenantHost('tokoa');
+        $response = $this->withToken($this->adminToken('tokoa'))
+            ->postJson('/api/v1/invite-codes', ['employee_id' => $employee->id])
+            ->assertStatus(201)
+            ->assertJsonPath('data.whatsapp_sent', true);
+
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/api/send-code')
+            && data_get($request->data(), 'code') === $response->json('data.code')
+            && data_get($request->data(), 'phone') === '081234567890');
+    }
+
+    public function test_generate_kode_unik_tetap_berhasil_kalau_whatsapp_off(): void
+    {
+        $this->provisionTenant('tokoa');
+        $employee = $this->createEmployee('tokoa');
+        $this->withTenantHost('tokoa');
+
+        // whatsapp_enabled default false → kode tetap dibuat tanpa kirim WA
+        $response = $this->withToken($this->adminToken('tokoa'))
+            ->postJson('/api/v1/invite-codes', ['employee_id' => $employee->id])
+            ->assertStatus(201)
+            ->assertJsonPath('data.whatsapp_sent', false);
+
+        $this->assertNotNull($response->json('data.code'));
     }
 
     public function test_non_admin_tidak_bisa_generate_kode(): void
