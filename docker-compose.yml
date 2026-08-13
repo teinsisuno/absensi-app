@@ -16,10 +16,13 @@
 
 services:
   app:
-    build: .
+    # NO build lokal — image di-pull dari GHCR (di-push oleh GitHub Actions deploy.yml).
+    # Update otomatis ditangani Watchtower (service di bawah).
     image: ghcr.io/sigitsuseno/absensi-app:latest
     container_name: absensi-app
     restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "8081:80"
     volumes:
@@ -70,6 +73,23 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Watchtower — auto-update image absensi-app dari GHCR.
+  # Alur: push master → GitHub Actions build+push image → watchtower deteksi
+  # digest baru (poll 60 detik) → pull + recreate container → entrypoint auto tenants:migrate.
+  # Label-enabled: cuma container ber-label com.centurylinklabs.watchtower.enable=true
+  # yang dipantau (mysql/redis nggak disentuh). Butuh docker login ghcr.io di host
+  # (sudah ada di ~/.docker/config.json imat@mini-pc).
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_POLL_INTERVAL: "60"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"
 
 volumes:
   absensi-storage:

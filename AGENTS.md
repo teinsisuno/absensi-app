@@ -38,10 +38,12 @@ npm run dev -- --host 0.0.0.0
 - CACHE_STORE=array (dev) / redis (prod). Sebelum `php artisan test` drop tenant yang slug-nya dipakai test.
 - Reset DB lokal: `php artisan migrate:fresh --seed` (portal-app) + `php artisan migrate:fresh` (absensi).
 
-## Deploy (git model — SUDAH AKTIF)
+## Deploy (Watchtower + GHCR — SUDAH AKTIF)
 - Mini-PC `10.10.10.122` (SSH `imat@`), repo di `~/portal-app` & `~/absensi-app` = CLONE GIT dengan remote SSH (key id_ed25519 dari Windows `C:\Users\Sigit\.ssh` sudah di-copy ke mini-pc, terdaftar akun sigitsuseno).
-- Alur: commit+push lokal → `ssh imat@10.10.10.122 "cd ~/absensi-app && git pull && docker compose --env-file docker/.env up -d --build"`.
+- **Alur deploy (otomatis penuh)**: commit+push master → GitHub Actions `.github/workflows/deploy.yml` build & push image ke `ghcr.io/sigitsuseno/absensi-app:latest` → **Watchtower** di mini-pc (poll tiap 60 detik, label-enabled cuma pantau absensi-app) pull + recreate container → entrypoint auto `tenants:migrate`. Tanpa SSH manual.
+- Cron `*/5 * * * *` di mini-pc tetap ada: `git pull` → post-merge hook → `docker compose --env-file docker/.env up -d` (hanya nerapin perubahan compose; build/image update ditangani CI+Watchtower).
 - ⚠️ absensi-app WAJIB `--env-file docker/.env` (compose interpolasi MYSQL_*; tanpa itu password kosong → app 502). portal-app tanpa env-file (tapi pastikan `.env` root ada).
+- ⚠️ Compose absensi-app TANPA `build:` — kalau clone ulang: pastikan `docker login ghcr.io` jalan di host (credential ada di `~/.docker/config.json` imat@mini-pc), lalu `docker compose --env-file docker/.env up -d`.
 - `docker/.env` + `docker/.env.production` gitignored — kalau clone ulang, backup dulu 2 file itu.
 - `.htaccess` public/: `/api/*` & `/up` → index.php, sisanya → index.html (SPA fallback), DirectoryIndex index.html.
 - Detail: skill `laravel-docker-cloudflared-deploy` + `laravel-multi-tenant-saas`.
