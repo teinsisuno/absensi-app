@@ -72,10 +72,8 @@ class TenantProvisioningService
             // di-skip padahal DB belum pernah dibuat (bug: status 'active' tanpa DB).
             // Cek keberadaan DB secara eksplisit lebih aman + idempotent.
             try {
-                JobPipeline::make([
-                    CreateDatabase::class,
-                    MigrateDatabase::class,
-                ])->send(fn () => $tenant)->shouldBeQueued(false)->dispatch();
+                app()->call([new CreateDatabase($tenant), 'handle']);
+                (new MigrateDatabase($tenant))->handle();
             } catch (TenantDatabaseAlreadyExistsException $e) {
                 // DB sudah ada dari percobaan sebelumnya — cukup pastikan termigrasi
                 (new MigrateDatabase($tenant))->handle();

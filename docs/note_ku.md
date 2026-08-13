@@ -65,7 +65,7 @@ MAIL_ENCRYPTION=ssl
 kita naming dulu deh roles-nya = 1. supervisor (owner pakai ini aja) = full akses di pwa hanya monitor tidak butuh relasi ke karyawan, 2.hrmanager (admin) full akses web, di pwa bisa approval cuti, 3.supervisor (manager atau mandor) tidak bisa akses web di p bisa buat group dan buat jadwal karyawan. 4. karyawan
 
 $env:ANTHROPIC_BASE_URL="https://api.deepseek.com/anthropic"
-$env:ANTHROPIC_AUTH_TOKEN="sk-e246a726bbd140c0a253e1b3d79267e0"
+$env:ANTHROPIC_AUTH_TOKEN=
 $env:ANTHROPIC_MODEL="deepseek-v4-pro[1m]"
 $env:ANTHROPIC_DEFAULT_OPUS_MODEL="deepseek-v4-pro[1m]"
 $env:ANTHROPIC_DEFAULT_SONNET_MODEL="deepseek-v4-pro[1m]"
