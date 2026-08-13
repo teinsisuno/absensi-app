@@ -93,6 +93,30 @@
           <p v-if="waError" class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ waError }}</p>
           <p v-if="waSuccess" class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ waSuccess }}</p>
         </form>
+
+        <!-- Status + QR scan + restart -->
+        <div v-if="form.whatsapp_enabled" class="mt-5 border-t border-gray-100 pt-4">
+          <div v-if="waStatus?.error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            {{ waStatus.error }}
+          </div>
+          <div v-else-if="waStatus?.connected" class="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+            ✅ Terhubung sebagai <strong>{{ waStatus.name || waStatus.number }}</strong> ({{ waStatus.number }})
+          </div>
+          <div v-else class="rounded-lg bg-amber-50 px-3 py-4 text-center">
+            <p class="mb-1 text-sm font-medium text-amber-700">Scan QR ini dengan WhatsApp kamu</p>
+            <p class="mb-3 text-xs text-amber-600">
+              HP → WhatsApp → ⋮ → Perangkat Tertaut → Tautkan Perangkat. QR refresh otomatis tiap 5 detik.
+            </p>
+            <img v-if="waQr" :src="waQr" alt="WhatsApp QR" class="mx-auto h-52 w-52 rounded-lg bg-white p-2 shadow-sm" />
+            <p v-else class="text-xs text-amber-500">Menunggu QR dari gateway…</p>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <button type="button" class="btn-secondary" :disabled="waRestarting" @click="restartGateway">
+              {{ waRestarting ? 'Merestart…' : '♻️ Restart Gateway' }}
+            </button>
+            <span v-if="waStatus?.booting" class="text-xs text-gray-400">Gateway masih booting…</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -125,6 +149,9 @@ const waTesting = ref(false)
 const waError = ref('')
 const waSuccess = ref('')
 const testPhone = ref('')
+const waQr = ref('')
+const waRestarting = ref(false)
+let waPollTimer: any = null
 
 const waStatusLabel = computed(() => {
   if (!form.whatsapp_enabled) return 'Nonaktif'
@@ -153,13 +180,18 @@ onMounted(async () => {
     form.whatsapp_enabled = s.whatsapp_enabled === 'true'
     form.whatsapp_gateway_url = s.whatsapp_gateway_url || ''
     form.whatsapp_api_token = s.whatsapp_api_token || ''
-    if (form.whatsapp_enabled) checkStatus()
+    if (form.whatsapp_enabled) {
+      checkStatus()
+      startWaPolling()
+    }
   } catch (e: any) {
     toast.error(errorMessage(e, 'Gagal memuat pengaturan.'))
   } finally {
     loading.value = false
   }
 })
+
+onUnmounted(stopWaPolling)
 
 async function submit() {
   formError.value = ''
@@ -197,12 +229,71 @@ async function checkStatus() {
     const res = await api<{ data: any }>('GET', '/settings/whatsapp/status')
     waStatus.value = res.data
     if (res.data?.error) waError.value = 'Status: ' + res.data.error
-    else if (res.data?.connected) waSuccess.value = 'Gateway terhubung sebagai ' + (res.data.name || res.data.number || 'bot')
-    else waSuccess.value = 'Gateway aktif — menunggu scan QR / bot belum siap.'
+    else if (res.data?.connected) {
+      waSuccess.value = 'Gateway terhubung sebagai ' + (res.data.name || res.data.number || 'bot')
+      waQr.value = ''
+    } else {
+      waSuccess.value = 'Gateway aktif — menunggu scan QR / bot belum siap.'
+      loadQr()
+    }
   } catch (e: any) {
     waError.value = errorMessage(e, 'Gagal cek status.')
   } finally {
     waChecking.value = false
+  }
+}
+
+async function loadQr() {
+  try {
+    const res = await api<{ data: any }>('GET', '/settings/whatsapp/qr')
+    const d = res.data
+    waQr.value = d?.qr ? d.qr : ''
+  } catch (e) {
+    // diam — polling berikutnya yang update
+  }
+}
+
+async function restartGateway() {
+  waRestarting.value = true
+  waError.value = ''
+  waSuccess.value = ''
+  try {
+    const res = await api<{ message: string }>('POST', '/settings/whatsapp/restart')
+    waSuccess.value = res.message || 'Gateway di-restart.'
+    waQr.value = ''
+    waStatus.value = null
+    setTimeout(() => {
+      checkStatus()
+      startWaPolling()
+    }, 3000)
+  } catch (e: any) {
+    waError.value = errorMessage(e, 'Gagal restart gateway.')
+  } finally {
+    waRestarting.value = false
+  }
+}
+
+function startWaPolling() {
+  stopWaPolling()
+  waPollTimer = setInterval(async () => {
+    if (!form.whatsapp_enabled) return
+    try {
+      const res = await api<{ data: any }>('GET', '/settings/whatsapp/status')
+      if (res?.data) {
+        waStatus.value = res.data
+        if (res.data.connected) waQr.value = ''
+        else loadQr()
+      }
+    } catch (e) {
+      // gateway mungkin lagi restart — biarkan polling lanjut
+    }
+  }, 5000)
+}
+
+function stopWaPolling() {
+  if (waPollTimer) {
+    clearInterval(waPollTimer)
+    waPollTimer = null
   }
 }
 

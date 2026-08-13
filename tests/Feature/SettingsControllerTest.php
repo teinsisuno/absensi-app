@@ -133,6 +133,77 @@ class SettingsControllerTest extends TestCase
             ->assertJsonPath('message', 'Notifikasi WhatsApp nonaktif.');
     }
 
+    public function test_whatsapp_qr_ambil_dari_gateway(): void
+    {
+        Http::fake([
+            '*/api/qr' => Http::response(['success' => true, 'connected' => false, 'qr' => 'data:image/png;base64,iVBORw0KGgo=']),
+        ]);
+
+        $this->provisionTenant('tokoa');
+        $token = $this->adminToken('tokoa');
+        $this->withTenantHost('tokoa');
+
+        $this->withToken($token)
+            ->putJson('/api/v1/settings', [
+                'settings' => [
+                    'whatsapp_enabled' => 'true',
+                    'whatsapp_gateway_url' => 'http://127.0.0.1:3001',
+                    'whatsapp_api_token' => 'rahasia123',
+                ],
+            ])
+            ->assertOk();
+
+        $this->withToken($token)
+            ->getJson('/api/v1/settings/whatsapp/qr')
+            ->assertOk()
+            ->assertJsonPath('data.connected', false)
+            ->assertJsonPath('data.qr', 'data:image/png;base64,iVBORw0KGgo=');
+
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/api/qr'));
+    }
+
+    public function test_whatsapp_qr_null_kalau_gateway_nonaktif(): void
+    {
+        $this->provisionTenant('tokoa');
+        $token = $this->adminToken('tokoa');
+        $this->withTenantHost('tokoa');
+
+        // whatsapp_enabled default false
+        $this->withToken($token)
+            ->getJson('/api/v1/settings/whatsapp/qr')
+            ->assertOk()
+            ->assertJsonPath('data', null);
+    }
+
+    public function test_whatsapp_restart_panggil_gateway(): void
+    {
+        Http::fake([
+            '*/api/restart' => Http::response(['success' => true, 'message' => 'Restarting...']),
+        ]);
+
+        $this->provisionTenant('tokoa');
+        $token = $this->adminToken('tokoa');
+        $this->withTenantHost('tokoa');
+
+        $this->withToken($token)
+            ->putJson('/api/v1/settings', [
+                'settings' => [
+                    'whatsapp_enabled' => 'true',
+                    'whatsapp_gateway_url' => 'http://127.0.0.1:3001',
+                    'whatsapp_api_token' => 'rahasia123',
+                ],
+            ])
+            ->assertOk();
+
+        $this->withToken($token)
+            ->postJson('/api/v1/settings/whatsapp/restart')
+            ->assertOk()
+            ->assertJsonPath('message', 'Gateway WhatsApp di-restart. Kalau session rusak, QR baru muncul dalam beberapa detik.');
+
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/api/restart')
+            && $request->hasHeader('X-API-Token', 'rahasia123'));
+    }
+
     public function test_karyawan_tidak_bisa_akses_settings(): void
     {
         $this->provisionTenant('tokoa');

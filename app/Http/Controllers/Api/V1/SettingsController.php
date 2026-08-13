@@ -74,4 +74,30 @@ class SettingsController extends Controller
     {
         return response()->json(['data' => $this->whatsapp->status()]);
     }
+
+    /**
+     * GET /api/v1/settings/whatsapp/qr — QR code buat scan (data URL PNG dari gateway).
+     * Dipakai halaman Settings buat nampilin QR pas gateway belum terhubung.
+     */
+    public function whatsappQr(): JsonResponse
+    {
+        return response()->json(['data' => $this->whatsapp->qr()]);
+    }
+
+    /**
+     * POST /api/v1/settings/whatsapp/restart — restart gateway (session rusak / ganti nomor).
+     */
+    public function whatsappRestart(): JsonResponse
+    {
+        try {
+            $result = $this->whatsapp->restart();
+
+            return response()->json([
+                'message' => 'Gateway WhatsApp di-restart. Kalau session rusak, QR baru muncul dalam beberapa detik.',
+                'data' => $result,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
 }
