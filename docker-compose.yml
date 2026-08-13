@@ -86,6 +86,8 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      # Auth GHCR: watchtower butuh credential docker login host (ghcr.io private).
+      - /home/imat/.docker/config.json:/config.json:ro
     environment:
       WATCHTOWER_POLL_INTERVAL: "60"
       WATCHTOWER_CLEANUP: "true"
