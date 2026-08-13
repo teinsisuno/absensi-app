@@ -41,6 +41,11 @@ class AdminAuthService
             throw new \RuntimeException('Layanan Central tidak bisa dihubungi. Coba lagi nanti.');
         }
 
+        // Central blokir user yang email-nya belum diverifikasi (403).
+        if ($response->status() === 403) {
+            throw new \RuntimeException('Email Central belum diverifikasi. Verifikasi dulu di megakomsel.com, lalu coba lagi.');
+        }
+
         if ($response->status() !== 200 || ! is_array($response->json('user'))) {
             throw new \InvalidArgumentException('Email atau password salah (akun Central).');
         }

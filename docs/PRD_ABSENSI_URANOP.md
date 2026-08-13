@@ -7,9 +7,9 @@
 | Author | Sigit / Paijo |
 | Project | Absensi (produk baru di dalam platform megakomsel.com) |
 | Fase | MVP Mobile App (PWA) |
-| Versi | v0.4 |
-| Status | Draft — disinkronkan dengan progress aktual (2026-08-12) |
-| Tanggal | 2026-08-12 |
+| Versi | v0.5 |
+| Status | Draft — disinkronkan dengan progress aktual (2026-08-13) |
+| Tanggal | 2026-08-13 |
 | Dependencies | Central Platform megakomsel.com (registrasi, onboarding tenancy, billing, tenant provisioning, auto-login SSO) |
 
 ---
@@ -139,6 +139,9 @@ Absensi API ── verifikasi signature & expiry token ──► buat/cocokkan u
   - [x] Response sukses/gagal dikirim balik ke Central (status `queued`, HTTP 202)
   - [x] Diproses async via `ProvisionTenantJob`
   - [x] Diproteksi secret header `X-Absensi-Webhook-Secret`
+  - [x] Central hanya mengizinkan subscribe app berstatus `available` (coming_soon ditolak) — fix central 2026-08-13
+  - [x] **Retry provisioning otomatis saat admin konfirmasi pembayaran** (bila webhook pertama saat subscribe gagal) — idempotent, fix central 2026-08-13
+  - [x] Lifecycle subscription di Central: `ends_at` diisi saat pembayaran dikonfirmasi (monthly +1 bulan, yearly +1 tahun) + command `subscriptions:expire` (scheduler hourly) memindahkan trialing/active yang lewat jatuh tempo → `past_due` — fix central 2026-08-13
 
 ### FR-002: SSO Login Owner/Admin
 - **Priority:** Must
@@ -154,6 +157,8 @@ Absensi API ── verifikasi signature & expiry token ──► buat/cocokkan u
   - [x] Session/token Absensi (Sanctum) diterbitkan untuk dipakai Nuxt4
   - [x] Token SSO ditolak jika sudah expired, terpakai, atau signature tidak valid
   - [x] Admin juga bisa login langsung dari subdomain dengan email+password akun Central (`POST /api/v1/auth/admin-login`)
+  - [x] **Email Central WAJIB terverifikasi** sebelum SSO/`admin-login` — Central menolak user unverified (HTTP 403), absensi-app menampilkan pesan verifikasi — fix central 2026-08-13
+  - [x] SSO hanya aktif untuk produk Absensi; app lain (`toyaa`, dll) ditolak dengan status `app-not-available` (belum punya integrasi SSO) — fix central 2026-08-13
 
 ### FR-003: Registrasi, PIN & Link Karyawan (Kode Unik)
 - **Priority:** Must
@@ -328,7 +333,7 @@ Absensi API ── verifikasi signature & expiry token ──► buat/cocokkan u
 
 - **Performance:** Proses clock in/out end-to-end < 3 detik (di luar waktu ambil GPS/kamera); halaman absen ringan untuk device low-end.
 - **Security:** PIN di-hash; rate limit percobaan PIN & kode unik salah; token SSO ditandatangani (HMAC) & short-lived; **template wajah disimpan privat & terenkripsi (bukan public URL)**; kode unik one-time + expiry.
-- **Reliability:** Waktu absen selalu diambil dari server, bukan client; idempotent pada webhook provisioning.
+- **Reliability:** Waktu absen selalu diambil dari server, bukan client; idempotent pada webhook provisioning; retry provisioning otomatis saat konfirmasi pembayaran di Central; lifecycle subscription (trial/aktif lewat jatuh tempo → `past_due`) dijaga scheduler `subscriptions:expire` di Central.
 - **Privacy:** Template wajah hanya dipakai untuk verifikasi absensi; retensi & penghapusan data wajah diatur HR (pertanyaan retensi masih terbuka).
 - **Scalability:** Arsitektur 1 tenant = 1 database (konsisten dengan Toyaa), backend Laravel API stateless agar mudah di-scale horizontal.
 - **Compatibility:** Laravel 13 / PHP 8.4 (selaras dengan stack Central); Nuxt4 + Tailwind untuk frontend; MySQL 8; PWA lewat `@vite-pwa/nuxt`.
@@ -881,7 +886,7 @@ Jobs:
 | Face mode client vs server tidak konsisten | Perbedaan hasil verify | Mode ditetapkan di pengaturan tenant (satu mode untuk semua device tenant) | ⚠️ Belum ada settings table |
 | Nuxt4 masih baru dipelajari tim | Potensi delay development | Sudah berjalan — frontend v0.3 aktif, 9+ halaman, build pass | ✅ Teratasi |
 | Foto & video wajah menambah beban data | Pengalaman lambat di sinyal lemah | Kompres sebelum upload; PWA offline queue | ⚠️ Offline queue belum |
-| Provisioning gagal (koneksi Central-Absensi terputus) | Tenant baru tidak bisa pakai app | Webhook idempotent + retry job; endpoint status provisioning bisa dicek manual dari admin platform | ✅ |
+| Provisioning gagal (koneksi Central-Absensi terputus) | Tenant baru tidak bisa pakai app | Webhook idempotent + retry otomatis saat konfirmasi pembayaran di Central (2026-08-13); endpoint status provisioning bisa dicek manual dari admin platform | ✅ |
 | iOS Safari getUserMedia butuh user gesture | Kamera tidak bisa diakses dari onMounted | enableCameraFromGesture() dipanggil saat user klik tombol Clock In/Out | ✅ Sudah diatasi |
 
 ---
@@ -1036,7 +1041,7 @@ Jobs:
 | 2 | Foto selfie/template wajah disimpan berapa lama (retensi storage)? | — (perlu keputusan HR; default sementara: ikut umur akun) |
 | 3 | Apakah owner/admin juga perlu absen (jadi employee juga) atau murni observer? | ✅ Management/direktur/owner = observer murni (tidak absen). HR/superadmin bisa dibuatkan record karyawan terpisah bila perlu ikut absen |
 | 4 | Approval izin: satu level (langsung admin) atau berjenjang (supervisor → admin)? | ✅ Satu level: HR adalah satu-satunya approver |
-| 5 | Nama & slug final aplikasi ini untuk didaftarkan ke katalog `apps` Central? | ✅ Nama: Absensi; slug: `absensi`; harga sementara Rp25.000/bln (edit via `/admin/apps`) |
+| 5 | Nama & slug final aplikasi ini untuk didaftarkan ke katalog `apps` Central? | ✅ Nama: Absensi; slug: `absensi`; harga sementara Rp35.000/bln (edit via `/admin/apps`) |
 | 6 | Integrasi payroll: apakah rekap kehadiran perlu diekspos lewat API ke aplikasi lain di ekosistem megakomsel.com? | — |
 | 7 | Library face recognition client-side & server-side? | ✅ `face-api.js` (TensorFlow.js) untuk kedua mode — satu library jalan di browser (client) & Node/Nitro (server). Jika berat/akurasi kurang → migrasi ke Python microservice (insightface/ArcFace) |
 | 8 | Kode unik: panjang karakter & format (8 karakter alfanumerik?) | ✅ 8 karakter acak, huruf besar + angka, tanpa I/O/0/1 |
@@ -1047,6 +1052,15 @@ Jobs:
 ---
 
 ## Perubahan dari PRD Sebelumnya
+
+- **v0.5 (2026-08-13):** Sinkronisasi dengan QA menyeluruh + fix Central-app.
+  - **Verifikasi email wajib**: Central menolak login API user unverified (HTTP 403) & SSO "Buka App" diarahkan ke halaman verifikasi; absensi-app menampilkan pesan verifikasi di `admin-login`.
+  - **SSO dibatasi ke produk Absensi**: app lain (toyaa/kasir/laundry) ditolak `app-not-available` — menghapus hardcode subdomain palsu `https://{slug}.megakomsel.com` di dashboard/subscriptions.
+  - **Subscribe app `coming_soon` ditolak** di Central (validasi status `available`).
+  - **Lifecycle subscription**: `ends_at` diisi saat pembayaran dikonfirmasi (monthly +1 bulan, yearly +1 tahun); command `subscriptions:expire` (scheduler hourly) memindahkan trialing/active lewat jatuh tempo → `past_due`.
+  - **Retry provisioning** saat konfirmasi pembayaran (idempotent) — menutup celah tenant aktif tanpa DB absensi.
+  - **Hardening Central**: unique index `(tenant_id, app_id, status)`, transaction `confirmPayment`, throttle web login/register/forgot-password, trustProxies dibatasi, slug app immutable + unik, guard `payments.create` untuk sub trialing/active, template `docker/.env.production.example`, seeder superadmin `admin@uranop.com` konsisten dengan AGENTS.md.
+  - **Test suite Central**: 29 test pass (regression test untuk semua fix di atas); absensi-app `AdminLoginTest` 6 test pass.
 
 - **v0.4 (2026-08-12):** Sinkronisasi dengan progress aktual.
   - **Status FR** diperbarui: FR-001, 002, 003, 004 = ✅ SELESAI. FR-006 = ✅ SELESAI (lebih kaya dari spesifikasi).

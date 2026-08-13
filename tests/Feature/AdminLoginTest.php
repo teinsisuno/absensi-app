@@ -71,6 +71,22 @@ class AdminLoginTest extends TestCase
         ])->assertStatus(401);
     }
 
+    public function test_login_gagal_saat_email_central_belum_diverifikasi(): void
+    {
+        $this->provisionTenant('tokoa');
+        // Central blokir user unverified dengan 403 (fix HIGH-2 central-app)
+        $this->fakeCentralLogin(403, ['id' => 42, 'name' => 'Budi Owner', 'email' => 'owner@tokoa.com']);
+
+        $this->withTenantHost('tokoa');
+        $response = $this->postJson('/api/v1/auth/admin-login', [
+            'email' => 'owner@tokoa.com',
+            'password' => 'rahasia123',
+        ]);
+
+        $response->assertStatus(401);
+        $this->assertStringContainsString('verifikasi', mb_strtolower($response->json('message')));
+    }
+
     public function test_login_ditolak_untuk_email_bukan_owner_tenant(): void
     {
         $this->provisionTenant('tokoa');
