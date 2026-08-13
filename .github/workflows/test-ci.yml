@@ -2,6 +2,7 @@ name: Test CI Minimal
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
