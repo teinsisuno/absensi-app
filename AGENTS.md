@@ -39,8 +39,8 @@ npm run dev -- --host 0.0.0.0
 - Reset DB lokal: `php artisan migrate:fresh --seed` (portal-app) + `php artisan migrate:fresh` (absensi).
 
 ## Deploy (Watchtower + GHCR — SUDAH AKTIF)
-- Mini-PC `10.10.10.122` (SSH `imat@`), repo di `~/portal-app` & `~/absensi-app` = CLONE GIT dengan remote SSH (key id_ed25519 dari Windows `C:\Users\Sigit\.ssh` sudah di-copy ke mini-pc, terdaftar akun sigitsuseno).
-- **Alur deploy (otomatis penuh)**: commit+push master → GitHub Actions `.github/workflows/deploy.yml` build & push image ke `ghcr.io/sigitsuseno/absensi-app:latest` → **Watchtower** di mini-pc (poll tiap 60 detik, label-enabled cuma pantau absensi-app) pull + recreate container → entrypoint auto `tenants:migrate`. Tanpa SSH manual.
+- Mini-PC `10.10.10.122` (SSH `imat@`), repo di `~/portal-app` & `~/absensi-app` = CLONE GIT dengan remote SSH (key `id_ed25519_teinsisuno` dari Windows `C:\Users\Sigit\.ssh` sudah di-copy ke mini-pc, terdaftar akun **teinsisuno**). Akun GitHub lama `sigitsuseno` kena lock billing (2026-08) → repo dipindah ke akun baru `teinsisuno` (remote Windows: `git@github.com-tein:teinsisuno/...`, SSH config alias `github.com-tein`; remote lama disimpan sebagai `backup`).
+- **Alur deploy (otomatis penuh)**: commit+push master → GitHub Actions `.github/workflows/ghcr-deploy.yml` build & push image ke `ghcr.io/teinsisuno/absensi-app:latest` → **Watchtower** di mini-pc (poll tiap 60 detik, label-enabled cuma pantau absensi-app) pull + recreate container → entrypoint auto `tenants:migrate`. Tanpa SSH manual.
 - Cron `*/5 * * * *` di mini-pc tetap ada: `git pull` → post-merge hook → `docker compose --env-file docker/.env up -d` (hanya nerapin perubahan compose; build/image update ditangani CI+Watchtower).
 - ⚠️ absensi-app WAJIB `--env-file docker/.env` (compose interpolasi MYSQL_*; tanpa itu password kosong → app 502). portal-app tanpa env-file (tapi pastikan `.env` root ada).
 - ⚠️ Compose absensi-app TANPA `build:` — kalau clone ulang: pastikan `docker login ghcr.io` jalan di host (credential ada di `~/.docker/config.json` imat@mini-pc), lalu `docker compose --env-file docker/.env up -d`.

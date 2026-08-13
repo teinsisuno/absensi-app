@@ -16,10 +16,10 @@
 
 services:
   app:
-    # ⚠️ SEMENTARA: build lokal aktif lagi (CI GHCR ke-lock billing GitHub 2026-08-13).
-    # Setelah billing beres & image GHCR ada, hapus `build: .` biar pure pull + Watchtower.
+    # ⚠️ SEMENTARA: build lokal aktif (CI GHCR lama ke-lock billing GitHub 2026-08-13).
+    # Setelah CI akun baru (teinsisuno) push image pertama, hapus `build: .` biar pure pull + Watchtower.
     build: .
-    image: ghcr.io/sigitsuseno/absensi-app:latest
+    image: ghcr.io/teinsisuno/absensi-app:latest
     container_name: absensi-app
     restart: unless-stopped
     labels:
