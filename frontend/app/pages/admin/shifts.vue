@@ -10,9 +10,7 @@
 
     <div v-if="loading" class="card p-10 text-center text-sm text-gray-400">Memuat…</div>
 
-    <div v-else-if="shifts.length === 0" class="card p-10 text-center text-sm text-gray-400">
-      Belum ada shift.
-    </div>
+    <EmptyState v-else-if="shifts.length === 0" icon="🕐" title="Belum ada shift" description="Tambahkan shift pertama untuk mengatur jam masuk-pulang karyawan." />
 
     <div v-else class="card overflow-x-auto">
       <table class="w-full min-w-[760px] text-left text-sm">

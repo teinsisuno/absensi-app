@@ -10,9 +10,7 @@
 
     <div v-if="loading" class="card p-10 text-center text-sm text-gray-400">Memuat…</div>
 
-    <div v-else-if="locations.length === 0" class="card p-10 text-center text-sm text-gray-400">
-      Belum ada lokasi kerja. Tambahkan minimal satu lokasi agar karyawan bisa absen.
-    </div>
+    <EmptyState v-else-if="locations.length === 0" icon="📍" title="Belum ada lokasi kerja" description="Tambahkan minimal satu lokasi kerja agar karyawan bisa absen dengan GPS." />
 
     <div v-else class="card overflow-x-auto">
       <table class="w-full min-w-[640px] text-left text-sm">

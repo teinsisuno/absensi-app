@@ -97,7 +97,7 @@
           class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
           active-class="bg-gray-800 text-white"
         >
-          <span>✅</span> Tugas
+          <span>✅</span> Tugas Luar
         </NuxtLink>
         <NuxtLink
           to="/admin/announcements"

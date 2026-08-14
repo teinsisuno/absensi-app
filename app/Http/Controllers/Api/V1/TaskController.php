@@ -73,7 +73,7 @@ class TaskController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Tugas diberikan.',
+            'message' => 'Tugas luar diberikan.',
             'data' => $task->fresh(['assignee:id,name,position']),
         ], 201);
     }
@@ -114,7 +114,7 @@ class TaskController extends Controller
         $task->update(['status' => $validated['status']]);
 
         return response()->json([
-            'message' => 'Status tugas diperbarui.',
+            'message' => 'Status tugas luar diperbarui.',
             'data' => $task->fresh(),
         ]);
     }
@@ -126,7 +126,7 @@ class TaskController extends Controller
     {
         $task->delete();
 
-        return response()->json(['message' => 'Tugas dihapus.']);
+        return response()->json(['message' => 'Tugas luar dihapus.']);
     }
 
     private function employee(Request $request): Employee

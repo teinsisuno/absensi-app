@@ -77,7 +77,7 @@
         <MenuCard
           icon="tasks"
           color="purple"
-          label="Tugas"
+          label="Tugas Luar"
           sub="Update status"
           to="/tasks"
         />

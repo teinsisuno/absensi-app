@@ -10,9 +10,7 @@
 
     <div v-if="loading" class="card p-10 text-center text-sm text-gray-400">Memuat…</div>
 
-    <div v-else-if="codes.length === 0" class="card p-10 text-center text-sm text-gray-400">
-      Belum ada kode unik. Klik “Generate Kode” untuk membuat kode pertama.
-    </div>
+    <EmptyState v-else-if="codes.length === 0" icon="🔑" title="Belum ada kode unik" description="Generate kode unik untuk menghubungkan akun karyawan dengan data kepegawaian." />
 
     <div v-else class="card overflow-x-auto">
       <table class="w-full min-w-[720px] text-left text-sm">

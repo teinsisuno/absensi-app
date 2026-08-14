@@ -40,9 +40,7 @@
     <!-- Roster matrix -->
     <div v-if="loading" class="card p-10 text-center text-sm text-gray-400">Memuat…</div>
 
-    <div v-else-if="employees.length === 0" class="card p-10 text-center text-sm text-gray-400">
-      Tidak ada karyawan untuk filter ini.
-    </div>
+    <EmptyState v-else-if="employees.length === 0" icon="👥" title="Tidak ada karyawan" description="Tidak ada karyawan untuk filter ini. Ubah filter atau periode." />
 
     <div v-else class="card overflow-x-auto">
       <table class="border-separate border-spacing-0 text-sm">

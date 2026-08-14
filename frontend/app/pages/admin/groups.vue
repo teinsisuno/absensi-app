@@ -10,9 +10,7 @@
 
     <div v-if="loading" class="card p-10 text-center text-sm text-gray-400">Memuat…</div>
 
-    <div v-else-if="groups.length === 0" class="card p-10 text-center text-sm text-gray-400">
-      Belum ada group. Buat group pertama untuk mengelompokkan karyawan.
-    </div>
+    <EmptyState v-else-if="groups.length === 0" icon="🗂️" title="Belum ada group" description="Buat group pertama untuk mengelompokkan karyawan dan atur jadwalnya." />
 
     <div v-else class="grid gap-3 md:grid-cols-2">
       <div v-for="group in groups" :key="group.id" class="card p-4">

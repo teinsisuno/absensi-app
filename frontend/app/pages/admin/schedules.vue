@@ -92,9 +92,7 @@
 
     <div v-if="snapshotLoading" class="card p-10 text-center text-sm text-gray-400">Memuat…</div>
 
-    <div v-else-if="snapshots.length === 0" class="card p-10 text-center text-sm text-gray-400">
-      Belum ada jadwal untuk filter ini.
-    </div>
+    <EmptyState v-else-if="snapshots.length === 0" icon="📋" title="Belum ada jadwal" description="Belum ada jadwal untuk filter ini. Ubah filter atau generate snapshot." />
 
     <div v-else class="card overflow-x-auto">
       <table class="w-full min-w-[640px] text-left text-sm">

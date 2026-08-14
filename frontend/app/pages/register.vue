@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="mx-auto min-h-screen w-full max-w-md bg-gray-50">
     <!-- Header -->
     <div class="rounded-b-[2rem] bg-primary-800 px-6 pb-8 pt-12 shadow-lg">
       <NuxtLink to="/login-karyawan" class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white">

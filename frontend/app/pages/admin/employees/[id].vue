@@ -15,7 +15,7 @@
 
     <SkeletonLoader v-if="loading" />
 
-    <div v-else-if="!employee" class="card p-10 text-center text-sm text-gray-400">Karyawan tidak ditemukan.</div>
+    <EmptyState v-else-if="!employee" icon="🔍" title="Karyawan tidak ditemukan" description="Data karyawan tidak ada atau sudah dihapus." />
 
     <template v-else>
       <!-- Tab bar -->

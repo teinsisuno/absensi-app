@@ -9,8 +9,11 @@
 
     <div v-else class="space-y-6">
       <!-- Umum -->
-      <div class="card max-w-2xl">
-        <h2 class="mb-4 text-sm font-semibold text-gray-700">Umum</h2>
+      <div class="card max-w-2xl p-6">
+        <div class="mb-4 flex items-center gap-2 border-b border-gray-100 pb-3">
+          <span class="text-lg">⚙️</span>
+          <h2 class="text-sm font-semibold text-gray-900">Umum</h2>
+        </div>
         <form @submit.prevent="submit">
           <div class="mb-5">
             <label class="label">Face Recognition Mode</label>
@@ -46,9 +49,12 @@
       </div>
 
       <!-- WhatsApp Gateway -->
-      <div class="card max-w-2xl">
-        <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-sm font-semibold text-gray-700">WhatsApp Gateway</h2>
+      <div class="card max-w-2xl p-6">
+        <div class="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">💬</span>
+            <h2 class="text-sm font-semibold text-gray-900">WhatsApp Gateway</h2>
+          </div>
           <span
             class="rounded-full px-2 py-0.5 text-xs font-medium"
             :class="waStatusBadge"

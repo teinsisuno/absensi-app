@@ -12,7 +12,7 @@
             <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
-        <h1 class="text-xl font-bold text-gray-800">Tugas Saya</h1>
+        <h1 class="text-xl font-bold text-gray-800">Tugas Luar Saya</h1>
       </div>
     </div>
 
@@ -55,7 +55,9 @@
             </span>
           </div>
           <div class="mt-2 flex items-center gap-3 text-[11px] text-gray-400">
-            <span v-if="t.due_date">📅 {{ formatDate(t.due_date) }}</span>
+            <span v-if="t.due_date" :class="isOverdue(t) ? 'font-semibold text-red-500' : ''">
+              📅 {{ formatDate(t.due_date) }}<span v-if="isOverdue(t)"> · Terlambat</span>
+            </span>
             <span>oleh {{ t.creator?.name || '—' }}</span>
           </div>
         </div>
@@ -141,7 +143,7 @@ async function updateStatus(status: string) {
   sheet.saving = true
   try {
     await api('PUT', `/tasks/${sheet.task.id}/status`, { status })
-    toast.success('Status tugas diperbarui.')
+    toast.success('Status tugas luar diperbarui.')
     sheet.open = false
     await load()
   } catch (e: any) {
@@ -149,6 +151,11 @@ async function updateStatus(status: string) {
   } finally {
     sheet.saving = false
   }
+}
+
+function isOverdue(t: any) {
+  if (!t.due_date || t.status === 'done') return false
+  return new Date(t.due_date + 'T00:00:00') < new Date(new Date().toDateString())
 }
 
 function formatDate(d: string) {

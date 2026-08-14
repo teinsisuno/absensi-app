@@ -34,8 +34,10 @@
           <button class="btn-primary !py-1.5 !text-xs" @click="openHolidayModal">+ Tambah Libur</button>
         </div>
 
-        <div v-if="holidays.length === 0" class="p-10 text-center text-sm text-gray-400">
-          Belum ada hari libur di kalender ini.
+        <div v-if="holidays.length === 0" class="flex flex-col items-center justify-center p-10 text-center">
+          <div class="text-3xl">🎉</div>
+          <p class="mt-2 text-sm font-medium text-gray-700">Belum ada hari libur</p>
+          <p class="mt-1 text-xs text-gray-400">Tambahkan hari libur di kalender ini.</p>
         </div>
         <table v-else class="w-full min-w-[560px] text-left text-sm">
           <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500">

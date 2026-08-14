@@ -10,9 +10,7 @@
 
     <div v-if="loading" class="card p-10 text-center text-sm text-gray-400">Memuat…</div>
 
-    <div v-else-if="patterns.length === 0" class="card p-10 text-center text-sm text-gray-400">
-      Belum ada pola kerja.
-    </div>
+    <EmptyState v-else-if="patterns.length === 0" icon="⏱️" title="Belum ada pola kerja" description="Tambahkan pola kerja pertama untuk mengatur jam kerja karyawan." />
 
     <div v-else class="card overflow-x-auto">
       <table class="w-full min-w-[760px] text-left text-sm">

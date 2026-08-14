@@ -2,8 +2,8 @@
   <div>
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-semibold text-gray-900">Tugas</h1>
-        <p class="text-sm text-gray-500">Berikan tugas ke karyawan dan pantau statusnya</p>
+        <h1 class="text-xl font-semibold text-gray-900">Tugas Luar</h1>
+        <p class="text-sm text-gray-500">Berikan tugas luar ke karyawan dan pantau statusnya</p>
       </div>
     </div>
 
@@ -15,7 +15,7 @@
         :class="tab === 'list' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
         @click="tab = 'list'"
       >
-        Daftar Tugas
+        Daftar Tugas Luar
       </button>
       <button
         type="button"
@@ -23,13 +23,13 @@
         :class="tab === 'create' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
         @click="tab = 'create'"
       >
-        Buat Tugas
+        Buat Tugas Luar
       </button>
     </div>
 
     <!-- Tab list -->
     <template v-if="tab === 'list'">
-      <div class="mb-4 flex flex-wrap gap-3">
+      <div class="mb-4 flex flex-wrap items-center gap-3">
         <select v-model="listFilter.assignee_id" class="input !w-auto" @change="load">
           <option value="">Semua Karyawan</option>
           <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.name }}</option>
@@ -40,19 +40,29 @@
           <option value="in_progress">In Progress</option>
           <option value="done">Done</option>
         </select>
+        <button
+          v-if="listFilter.assignee_id || listFilter.status"
+          type="button"
+          class="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          @click="resetFilter"
+        >
+          ✕ Reset filter
+        </button>
+        <span class="ml-auto text-xs text-gray-400">{{ tasks.length }} tugas luar</span>
       </div>
 
       <SkeletonLoader v-if="loading" />
 
-      <EmptyState v-else-if="tasks.length === 0" icon="✅" title="Belum ada tugas" description="Buat tugas pertama lewat tab Buat Tugas." />
+      <EmptyState v-else-if="tasks.length === 0" icon="✅" title="Belum ada tugas luar" description="Buat tugas luar pertama lewat tab Buat Tugas Luar." />
 
       <div v-else class="card overflow-x-auto">
-        <table class="w-full min-w-[640px] text-left text-sm">
+        <table class="w-full min-w-[720px] text-left text-sm">
           <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500">
             <tr>
-              <th class="px-4 py-3 font-medium">Assignee</th>
+              <th class="px-4 py-3 font-medium">Karyawan</th>
               <th class="px-4 py-3 font-medium">Judul</th>
               <th class="px-4 py-3 font-medium">Deadline</th>
+              <th class="px-4 py-3 font-medium">Dibuat oleh</th>
               <th class="px-4 py-3 font-medium">Status</th>
               <th class="px-4 py-3 text-right font-medium">Aksi</th>
             </tr>
@@ -64,7 +74,13 @@
                 <p class="truncate font-medium text-gray-800">{{ t.title }}</p>
                 <p v-if="t.description" class="line-clamp-1 text-xs text-gray-400">{{ t.description }}</p>
               </td>
-              <td class="px-4 py-3 text-gray-600">{{ formatDate(t.due_date) }}</td>
+              <td class="px-4 py-3">
+                <span v-if="isOverdue(t)" class="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600">
+                  ⏰ {{ formatDate(t.due_date) }}
+                </span>
+                <span v-else class="text-gray-600">{{ formatDate(t.due_date) }}</span>
+              </td>
+              <td class="px-4 py-3 text-gray-600">{{ t.creator?.name || '—' }}</td>
               <td class="px-4 py-3">
                 <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="statusClass(t.status)">{{ statusLabel(t.status) }}</span>
               </td>
@@ -81,37 +97,66 @@
     </template>
 
     <!-- Tab create -->
-    <div v-else class="card max-w-2xl">
-      <form @submit.prevent="submitForm">
-        <div class="mb-4">
-          <label class="label">Karyawan <span class="text-red-500">*</span></label>
-          <select v-model="form.assignee_id" class="input" required>
-            <option :value="null" disabled>— Pilih karyawan —</option>
-            <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.name }}</option>
-          </select>
+    <div v-else class="card max-w-2xl overflow-hidden">
+      <!-- Header form -->
+      <div class="border-b border-primary-800 bg-gradient-to-r from-primary-700 to-primary-600 px-6 py-5">
+        <div class="flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-2xl">📋</div>
+          <div>
+            <h2 class="font-bold text-white">Buat Tugas Luar</h2>
+            <p class="text-xs text-primary-100">Berikan tugas luar ke karyawan, lengkap dengan deadline</p>
+          </div>
         </div>
-        <div class="mb-4">
-          <label class="label">Judul <span class="text-red-500">*</span></label>
-          <input v-model="form.title" type="text" class="input" required />
+      </div>
+
+      <form @submit.prevent="submitForm" class="p-6">
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div>
+            <label class="label">Karyawan <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-gray-400">👤</span>
+              <select v-model="form.assignee_id" class="input !pl-10" required>
+                <option :value="null" disabled>— Pilih karyawan —</option>
+                <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.name }}</option>
+              </select>
+            </div>
+            <p class="mt-1 text-xs text-gray-400">Karyawan yang menerima tugas luar.</p>
+          </div>
+          <div>
+            <label class="label">Deadline</label>
+            <div class="relative">
+              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-gray-400">📅</span>
+              <input v-model="form.due_date" type="date" class="input !pl-10" />
+            </div>
+            <p class="mt-1 text-xs text-gray-400">Tanggal batas penyelesaian.</p>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="label">Judul <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-gray-400">📝</span>
+              <input v-model="form.title" type="text" class="input !pl-10" placeholder="mis. Ambil dokumen ke kantor pajak" required />
+            </div>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="label">Deskripsi</label>
+            <textarea v-model="form.description" rows="4" class="input" placeholder="Detail pekerjaan, alamat tujuan, instruksi tambahan…"></textarea>
+          </div>
         </div>
-        <div class="mb-4">
-          <label class="label">Deskripsi</label>
-          <textarea v-model="form.description" rows="3" class="input"></textarea>
-        </div>
-        <div class="mb-4">
-          <label class="label">Deadline</label>
-          <input v-model="form.due_date" type="date" class="input" />
-        </div>
-        <p v-if="formError" class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ formError }}</p>
-        <div class="flex justify-end gap-2">
-          <button type="button" class="btn-secondary" @click="resetForm">Reset</button>
-          <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan Tugas' }}</button>
+
+        <p v-if="formError" class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ formError }}</p>
+
+        <div class="mt-6 flex items-center justify-between gap-2 border-t border-gray-100 pt-4">
+          <p class="text-xs text-gray-400"><span class="text-red-500">*</span> Wajib diisi</p>
+          <div class="flex gap-2">
+            <button type="button" class="btn-secondary" @click="resetForm">Reset</button>
+            <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan Tugas Luar' }}</button>
+          </div>
         </div>
       </form>
     </div>
 
     <!-- Modal edit -->
-    <AppModal v-if="editModal.open" title="Edit Tugas" @close="editModal.open = false">
+    <AppModal v-if="editModal.open" title="Edit Tugas Luar" @close="editModal.open = false">
       <form @submit.prevent="submitEdit">
         <div class="mb-4">
           <label class="label">Karyawan</label>
@@ -159,6 +204,7 @@ interface Task {
   due_date?: string | null
   status: string
   assignee?: { name?: string } | null
+  creator?: { name?: string } | null
 }
 
 const toast = useToast()
@@ -229,7 +275,7 @@ async function submitForm() {
       due_date: form.due_date || null,
     })
     resetForm()
-    toast.success('Tugas diberikan.')
+    toast.success('Tugas luar diberikan.')
     tab.value = 'list'
     await load()
   } catch (e: any) {
@@ -262,7 +308,7 @@ async function submitEdit() {
       status: editModal.form.status,
     })
     editModal.open = false
-    toast.success('Tugas diperbarui.')
+    toast.success('Tugas luar diperbarui.')
     await load()
   } catch (e: any) {
     toast.error(errorMessage(e, 'Gagal mengupdate tugas.'))
@@ -281,11 +327,22 @@ async function remove(t: Task) {
   if (!ok) return
   try {
     await api('DELETE', `/tasks/${t.id}`)
-    toast.success('Tugas dihapus.')
+    toast.success('Tugas luar dihapus.')
     await load()
   } catch (e: any) {
     toast.error(errorMessage(e, 'Gagal menghapus tugas.'))
   }
+}
+
+function resetFilter() {
+  listFilter.assignee_id = ''
+  listFilter.status = ''
+  load()
+}
+
+function isOverdue(t: Task) {
+  if (!t.due_date || t.status === 'done') return false
+  return new Date(t.due_date + 'T00:00:00') < new Date(new Date().toDateString())
 }
 
 function formatDate(d: string | null) {

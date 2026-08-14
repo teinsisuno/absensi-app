@@ -71,7 +71,7 @@
         <div class="flex flex-wrap gap-2">
           <NuxtLink to="/admin/employees" class="btn-secondary">+ Tambah Karyawan</NuxtLink>
           <NuxtLink to="/admin/announcements" class="btn-secondary">📢 Buat Pengumuman</NuxtLink>
-          <NuxtLink to="/admin/tasks" class="btn-secondary">✅ Beri Tugas</NuxtLink>
+          <NuxtLink to="/admin/tasks" class="btn-secondary">✅ Beri Tugas Luar</NuxtLink>
         </div>
       </div>
 
@@ -122,7 +122,7 @@ const menus = [
   { to: '/admin/leave-requests', icon: '📝', title: 'Pengajuan Izin', desc: 'Approve izin/cuti/sakit' },
   { to: '/admin/overtime-requests', icon: '⏰', title: 'Pengajuan Lembur', desc: 'Approve lembur' },
   { to: '/admin/visits', icon: '📍', title: 'Kunjungan', desc: 'Kunjungan lapangan karyawan' },
-  { to: '/admin/tasks', icon: '✅', title: 'Tugas', desc: 'Task giving & monitoring' },
+  { to: '/admin/tasks', icon: '✅', title: 'Tugas Luar', desc: 'Beri & pantau tugas luar' },
   { to: '/admin/announcements', icon: '📢', title: 'Pengumuman', desc: 'Buat & kelola pengumuman' },
   { to: '/admin/reports', icon: '📈', title: 'Laporan', desc: 'Rekap & grafik kehadiran' },
   { to: '/admin/settings', icon: '⚙️', title: 'Pengaturan', desc: 'Konfigurasi tenant' },
