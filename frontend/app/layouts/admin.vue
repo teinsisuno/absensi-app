@@ -120,6 +120,13 @@
         >
           <span>⚙️</span> Pengaturan
         </NuxtLink>
+        <NuxtLink
+          to="/admin/locations"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          active-class="bg-gray-800 text-white"
+        >
+          <span>📍</span> Lokasi Kerja
+        </NuxtLink>
       </nav>
       <div class="border-t border-gray-800 p-4">
         <button class="btn-secondary w-full !bg-gray-800 !text-gray-200 ring-gray-700 hover:!bg-gray-700" @click="logout">
