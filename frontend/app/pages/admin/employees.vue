@@ -84,6 +84,7 @@
     <!-- Modal form tambah/edit -->
     <AppModal v-if="modal.open" :title="modal.mode === 'create' ? 'Tambah Karyawan' : 'Edit Karyawan'" wide @close="modal.open = false">
       <form @submit.prevent="submitForm">
+        <div class="max-h-[70vh] overflow-y-auto pr-1">
         <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Data Kepegawaian</p>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div class="sm:col-span-2">
@@ -184,6 +185,7 @@
         </div>
 
         <p v-if="formError" class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ formError }}</p>
+        </div>
 
         <div class="mt-4 flex justify-end gap-2">
           <button type="button" class="btn-secondary" @click="modal.open = false">Batal</button>
