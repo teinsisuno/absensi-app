@@ -73,3 +73,30 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="deepseek-v4-flash"
 $env:CLAUDE_CODE_SUBAGENT_MODEL="deepseek-v4-flash"
 $env:CLAUDE_CODE_EFFORT_LEVEL="max"
 $env:CLAUDE_CODE_AUTO_COMPACT_WINDOW="786432"
+
+Bertindaklah sebagai Software Engineer ahli. Saya membutuhkan bantuanmu untuk membuatkan **[isi dengan: kode Flutter / React Native / Flowchart]** berdasarkan alur "Proses Daftar, Login hingga Beranda" berikut ini. Pastikan untuk mengimplementasikan logika dan penanganan _error_ (_edge cases_) dengan baik.
+
+## 1. Cek database lokal untuk Tenant/Link
+
+- **Jika kosong:** Tampilkan halaman isi tenant/link.
+- **Jika sudah ada:** Lanjut ke tahap 2.
+
+## 2. Cek database lokal untuk PIN, Email, dan Password
+
+- **Kondisi Kosong (Alur Register):**
+  Tampilkan halaman register. User memasukkan nama, email, dan password.
+    - _Validasi:_ Cek API apakah email sudah terdaftar. Jika ada, tampilkan pesan error. Jika tidak, simpan data ke server dan lokal, lalu arahkan user untuk set PIN. Setelah set PIN selesai, lanjut ke tahap 3.
+- **Kondisi Terisi (Alur Login):**
+  Tampilkan halaman login dengan input PIN saja.
+    - _Validasi:_ Jika PIN yang dimasukkan salah, tampilkan pesan error dan minta input ulang. Jika benar, lanjut ke tahap 3.
+
+## 3. Cek database karyawan untuk ID Karyawan
+
+- **Kondisi Kosong:**
+  Tampilkan halaman input Kode Unik.
+    - _Validasi:_ Jika kode unik salah/tidak ditemukan, tampilkan pesan error. Jika benar, tampilkan nama karyawan dan tombol "Simpan" di bagian bawah.
+    - _Lanjutan:_ Setelah klik "Simpan", arahkan ke halaman pengambilan data wajah. Ambil data wajah dan simpan (jika gagal/dibatalkan, berikan pesan error atau opsi coba lagi). Jika berhasil, masuk ke Beranda.
+- **Kondisi Terisi:**
+  Cek apakah gambar wajah sudah ada di database.
+    - **Jika sudah ada:** Langsung masuk ke Beranda.
+    - **Jika belum ada:** Arahkan ke halaman pengambilan data wajah terlebih dahulu sebelum masuk ke Beranda.

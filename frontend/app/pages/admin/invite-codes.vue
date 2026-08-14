@@ -176,8 +176,11 @@ function statusClass(item: InviteCodeItem) {
 }
 
 function canResend(item: InviteCodeItem) {
-  // Bisa bikin kode baru kalau kode lama sudah terpakai / kedaluwarsa & karyawan masih ada
-  return !!item.employee_id && (!!item.used_at || new Date(item.expires_at) < new Date())
+  // Hanya kode KEDALUWARSA yang belum terpakai yang bisa dibuat ulang.
+  // Kode terpakai = karyawan sudah ter-link akun → generate ulang pasti
+  // ditolak backend ("Karyawan ini sudah ter-link ke akun."), jadi tombol
+  // Buat Baru tidak boleh muncul di sana.
+  return !!item.employee_id && !item.used_at && new Date(item.expires_at) < new Date()
 }
 
 function formatDate(value?: string | null) {
