@@ -7,122 +7,145 @@
 
     <SkeletonLoader v-if="loading" />
 
-    <div v-else class="space-y-6">
+    <div v-else>
+      <!-- Tab bar -->
+      <div class="mb-6 flex gap-2 border-b border-gray-200">
+        <button
+          v-for="t in tabs"
+          :key="t.key"
+          type="button"
+          class="-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition"
+          :class="activeTab === t.key ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-800'"
+          @click="activeTab = t.key"
+        >
+          {{ t.label }}
+        </button>
+      </div>
+
       <!-- Umum -->
-      <div class="card max-w-2xl p-6">
-        <div class="mb-4 flex items-center gap-2 border-b border-gray-100 pb-3">
-          <span class="text-lg">⚙️</span>
-          <h2 class="text-sm font-semibold text-gray-900">Umum</h2>
+      <div v-if="activeTab === 'umum'" class="space-y-6">
+        <div class="card max-w-2xl p-6">
+          <div class="mb-4 flex items-center gap-2 border-b border-gray-100 pb-3">
+            <span class="text-lg">⚙️</span>
+            <h2 class="text-sm font-semibold text-gray-900">Umum</h2>
+          </div>
+          <form @submit.prevent="submit">
+            <div class="mb-5">
+              <label class="label">Face Recognition Mode</label>
+              <select v-model="form.face_mode" class="input">
+                <option value="server">Server-side (matching di server)</option>
+                <option value="client">Client-side (matching di device)</option>
+              </select>
+              <p class="mt-1 text-xs text-gray-400">Cara template wajah dicocokkan saat absen. Default: server.</p>
+            </div>
+
+            <div class="mb-5">
+              <label class="label">Masa Berlaku Kode Unik (jam)</label>
+              <input v-model="form.invite_expiry_hours" type="number" min="1" max="720" class="input" />
+              <p class="mt-1 text-xs text-gray-400">Berapa jam kode unik link akun berlaku. Default: 48 jam.</p>
+            </div>
+
+            <div class="mb-5">
+              <label class="label">Default Radius Absen (meter)</label>
+              <input v-model="form.default_radius_meter" type="number" min="10" max="10000" class="input" />
+              <p class="mt-1 text-xs text-gray-400">Jarak maksimal dari titik lokasi agar absen diterima. Default: 100 m.</p>
+            </div>
+
+            <div class="mb-5 flex items-center gap-2">
+              <input id="notify_email_hr" v-model="form.notify_email_hr" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" />
+              <label for="notify_email_hr" class="text-sm text-gray-700">Kirim notifikasi email ke HR saat ada pengajuan baru</label>
+            </div>
+
+            <p v-if="formError" class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ formError }}</p>
+            <p v-if="saved" class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">✓ Pengaturan disimpan.</p>
+
+            <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan Pengaturan' }}</button>
+          </form>
         </div>
-        <form @submit.prevent="submit">
-          <div class="mb-5">
-            <label class="label">Face Recognition Mode</label>
-            <select v-model="form.face_mode" class="input">
-              <option value="server">Server-side (matching di server)</option>
-              <option value="client">Client-side (matching di device)</option>
-            </select>
-            <p class="mt-1 text-xs text-gray-400">Cara template wajah dicocokkan saat absen. Default: server.</p>
-          </div>
-
-          <div class="mb-5">
-            <label class="label">Masa Berlaku Kode Unik (jam)</label>
-            <input v-model="form.invite_expiry_hours" type="number" min="1" max="720" class="input" />
-            <p class="mt-1 text-xs text-gray-400">Berapa jam kode unik link akun berlaku. Default: 48 jam.</p>
-          </div>
-
-          <div class="mb-5">
-            <label class="label">Default Radius Absen (meter)</label>
-            <input v-model="form.default_radius_meter" type="number" min="10" max="10000" class="input" />
-            <p class="mt-1 text-xs text-gray-400">Jarak maksimal dari titik lokasi agar absen diterima. Default: 100 m.</p>
-          </div>
-
-          <div class="mb-5 flex items-center gap-2">
-            <input id="notify_email_hr" v-model="form.notify_email_hr" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" />
-            <label for="notify_email_hr" class="text-sm text-gray-700">Kirim notifikasi email ke HR saat ada pengajuan baru</label>
-          </div>
-
-          <p v-if="formError" class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ formError }}</p>
-          <p v-if="saved" class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">✓ Pengaturan disimpan.</p>
-
-          <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan Pengaturan' }}</button>
-        </form>
       </div>
 
       <!-- WhatsApp Gateway -->
-      <div class="card max-w-2xl p-6">
-        <div class="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">💬</span>
-            <h2 class="text-sm font-semibold text-gray-900">WhatsApp Gateway</h2>
+      <div v-if="activeTab === 'wa'" class="space-y-6">
+        <div class="card max-w-2xl p-6">
+          <div class="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">💬</span>
+              <h2 class="text-sm font-semibold text-gray-900">WhatsApp Gateway</h2>
+            </div>
+            <span
+              class="rounded-full px-2 py-0.5 text-xs font-medium"
+              :class="waStatusBadge"
+            >
+              {{ waStatusLabel }}
+            </span>
           </div>
-          <span
-            class="rounded-full px-2 py-0.5 text-xs font-medium"
-            :class="waStatusBadge"
-          >
-            {{ waStatusLabel }}
-          </span>
+          <p class="mb-4 text-xs text-gray-400">
+            Kirim kode unik registrasi otomatis ke WhatsApp karyawan. Butuh bot
+            <code class="rounded bg-gray-100 px-1">whatsapp-bot</code> yang sudah login (scan QR) dan API-nya berjalan.
+          </p>
+
+          <form @submit.prevent="submit">
+            <div class="mb-5 flex items-center gap-2">
+              <input id="whatsapp_enabled" v-model="form.whatsapp_enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" />
+              <label for="whatsapp_enabled" class="text-sm text-gray-700">Aktifkan kirim kode unik via WhatsApp</label>
+            </div>
+
+            <div class="mb-5">
+              <label class="label">URL Gateway</label>
+              <input v-model="form.whatsapp_gateway_url" type="url" class="input" placeholder="http://127.0.0.1:3001" />
+              <p class="mt-1 text-xs text-gray-400">Alamat HTTP API whatsapp-bot (tanpa trailing slash).</p>
+            </div>
+
+            <div class="mb-5">
+              <label class="label">API Token</label>
+              <input v-model="form.whatsapp_api_token" type="password" class="input" placeholder="token dari .env whatsapp-bot" />
+              <p class="mt-1 text-xs text-gray-400">Nilai <code class="rounded bg-gray-100 px-1">API_TOKEN</code> di file .env whatsapp-bot.</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan Pengaturan' }}</button>
+              <button type="button" class="btn-secondary" :disabled="waChecking" @click="checkStatus">
+                {{ waChecking ? 'Mengecek…' : '🔄 Cek Status Gateway' }}
+              </button>
+              <button type="button" class="btn-secondary" :disabled="waTesting" @click="sendTest">
+                {{ waTesting ? 'Mengirim…' : '📨 Kirim Test' }}
+              </button>
+              <input v-model="testPhone" type="tel" class="input w-44" placeholder="Nomor test, mis. 0812…" />
+            </div>
+
+            <p v-if="waError" class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ waError }}</p>
+            <p v-if="waSuccess" class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ waSuccess }}</p>
+          </form>
+
+          <!-- Status + QR scan + restart -->
+          <div v-if="form.whatsapp_enabled" class="mt-5 border-t border-gray-100 pt-4">
+            <div v-if="waStatus?.error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {{ waStatus.error }}
+            </div>
+            <div v-else-if="waStatus?.connected" class="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+              ✅ Terhubung sebagai <strong>{{ waStatus.name || waStatus.number }}</strong> ({{ waStatus.number }})
+            </div>
+            <div v-else class="rounded-lg bg-amber-50 px-3 py-4 text-center">
+              <p class="mb-1 text-sm font-medium text-amber-700">Scan QR ini dengan WhatsApp kamu</p>
+              <p class="mb-3 text-xs text-amber-600">
+                HP → WhatsApp → ⋮ → Perangkat Tertaut → Tautkan Perangkat. QR refresh otomatis tiap 5 detik.
+              </p>
+              <img v-if="waQr" :src="waQr" alt="WhatsApp QR" class="mx-auto h-52 w-52 rounded-lg bg-white p-2 shadow-sm" />
+              <p v-else class="text-xs text-amber-500">Menunggu QR dari gateway…</p>
+            </div>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <button type="button" class="btn-secondary" :disabled="waRestarting" @click="restartGateway">
+                {{ waRestarting ? 'Merestart…' : '♻️ Restart Gateway' }}
+              </button>
+              <span v-if="waStatus?.booting" class="text-xs text-gray-400">Gateway masih booting…</span>
+            </div>
+          </div>
         </div>
-        <p class="mb-4 text-xs text-gray-400">
-          Kirim kode unik registrasi otomatis ke WhatsApp karyawan. Butuh bot
-          <code class="rounded bg-gray-100 px-1">whatsapp-bot</code> yang sudah login (scan QR) dan API-nya berjalan.
-        </p>
+      </div>
 
-        <form @submit.prevent="submit">
-          <div class="mb-5 flex items-center gap-2">
-            <input id="whatsapp_enabled" v-model="form.whatsapp_enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" />
-            <label for="whatsapp_enabled" class="text-sm text-gray-700">Aktifkan kirim kode unik via WhatsApp</label>
-          </div>
-
-          <div class="mb-5">
-            <label class="label">URL Gateway</label>
-            <input v-model="form.whatsapp_gateway_url" type="url" class="input" placeholder="http://127.0.0.1:3001" />
-            <p class="mt-1 text-xs text-gray-400">Alamat HTTP API whatsapp-bot (tanpa trailing slash).</p>
-          </div>
-
-          <div class="mb-5">
-            <label class="label">API Token</label>
-            <input v-model="form.whatsapp_api_token" type="password" class="input" placeholder="token dari .env whatsapp-bot" />
-            <p class="mt-1 text-xs text-gray-400">Nilai <code class="rounded bg-gray-100 px-1">API_TOKEN</code> di file .env whatsapp-bot.</p>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan Pengaturan' }}</button>
-            <button type="button" class="btn-secondary" :disabled="waChecking" @click="checkStatus">
-              {{ waChecking ? 'Mengecek…' : '🔄 Cek Status Gateway' }}
-            </button>
-            <button type="button" class="btn-secondary" :disabled="waTesting" @click="sendTest">
-              {{ waTesting ? 'Mengirim…' : '📨 Kirim Test' }}
-            </button>
-            <input v-model="testPhone" type="tel" class="input w-44" placeholder="Nomor test, mis. 0812…" />
-          </div>
-
-          <p v-if="waError" class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ waError }}</p>
-          <p v-if="waSuccess" class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ waSuccess }}</p>
-        </form>
-
-        <!-- Status + QR scan + restart -->
-        <div v-if="form.whatsapp_enabled" class="mt-5 border-t border-gray-100 pt-4">
-          <div v-if="waStatus?.error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-            {{ waStatus.error }}
-          </div>
-          <div v-else-if="waStatus?.connected" class="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
-            ✅ Terhubung sebagai <strong>{{ waStatus.name || waStatus.number }}</strong> ({{ waStatus.number }})
-          </div>
-          <div v-else class="rounded-lg bg-amber-50 px-3 py-4 text-center">
-            <p class="mb-1 text-sm font-medium text-amber-700">Scan QR ini dengan WhatsApp kamu</p>
-            <p class="mb-3 text-xs text-amber-600">
-              HP → WhatsApp → ⋮ → Perangkat Tertaut → Tautkan Perangkat. QR refresh otomatis tiap 5 detik.
-            </p>
-            <img v-if="waQr" :src="waQr" alt="WhatsApp QR" class="mx-auto h-52 w-52 rounded-lg bg-white p-2 shadow-sm" />
-            <p v-else class="text-xs text-amber-500">Menunggu QR dari gateway…</p>
-          </div>
-          <div class="mt-3 flex flex-wrap items-center gap-2">
-            <button type="button" class="btn-secondary" :disabled="waRestarting" @click="restartGateway">
-              {{ waRestarting ? 'Merestart…' : '♻️ Restart Gateway' }}
-            </button>
-            <span v-if="waStatus?.booting" class="text-xs text-gray-400">Gateway masih booting…</span>
-          </div>
-        </div>
+      <!-- Lokasi Kerja -->
+      <div v-if="activeTab === 'lokasi'" class="space-y-6">
+        <LocationsPanel />
       </div>
     </div>
   </div>
@@ -132,6 +155,14 @@
 definePageMeta({ layout: 'admin', middleware: 'guard' })
 
 const toast = useToast()
+const route = useRoute()
+
+const tabs = [
+  { key: 'umum', label: '⚙️ Umum' },
+  { key: 'wa', label: '💬 Wa Gateway' },
+  { key: 'lokasi', label: '📍 Lokasi' },
+]
+const activeTab = ref<'umum' | 'wa' | 'lokasi'>('umum')
 
 const loading = ref(true)
 const saving = ref(false)
@@ -176,6 +207,8 @@ const waStatusBadge = computed(() => {
 })
 
 onMounted(async () => {
+  const q = route.query.tab
+  if (q === 'wa' || q === 'lokasi') activeTab.value = q
   try {
     const data = await api<{ data: Record<string, string> }>('GET', '/settings')
     const s = data.data || {}

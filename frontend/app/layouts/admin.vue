@@ -121,7 +121,7 @@
           <span>⚙️</span> Pengaturan
         </NuxtLink>
         <NuxtLink
-          to="/admin/locations"
+          to="/admin/settings?tab=lokasi"
           class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
           active-class="bg-gray-800 text-white"
         >

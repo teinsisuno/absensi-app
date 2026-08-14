@@ -32,11 +32,11 @@
       <!-- Stat absensi hari ini -->
       <div class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <div class="card border-l-4 border-primary-500 p-4">
-          <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Clock-in Hari Ini</p>
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Jam Masuk Hari Ini</p>
           <p class="mt-1 text-2xl font-bold text-primary-600">{{ stats.clock_in_today }}</p>
         </div>
         <div class="card border-l-4 border-emerald-500 p-4">
-          <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Clock-out Hari Ini</p>
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Jam Keluar Hari Ini</p>
           <p class="mt-1 text-2xl font-bold text-emerald-600">{{ stats.clock_out_today }}</p>
         </div>
         <div class="card border-l-4 border-amber-500 p-4">
@@ -126,7 +126,7 @@ const menus = [
   { to: '/admin/announcements', icon: '📢', title: 'Pengumuman', desc: 'Buat & kelola pengumuman' },
   { to: '/admin/reports', icon: '📈', title: 'Laporan', desc: 'Rekap & grafik kehadiran' },
   { to: '/admin/settings', icon: '⚙️', title: 'Pengaturan', desc: 'Konfigurasi tenant' },
-  { to: '/admin/locations', icon: '📍', title: 'Lokasi Kerja', desc: 'Titik GPS & radius' },
+  { to: '/admin/settings?tab=lokasi', icon: '📍', title: 'Lokasi Kerja', desc: 'Titik GPS & radius' },
 ]
 
 const pendingLeave = ref(0)
