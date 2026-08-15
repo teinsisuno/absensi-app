@@ -81,6 +81,25 @@ class ProfileController extends Controller
         ]);
     }
 
+    /**
+     * POST /api/v1/me/photo — karyawan: update foto profil.
+     * photo dikirim sebagai data URI base64 (konvensi sama seperti selfie_photo).
+     */
+    public function updatePhoto(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'photo' => ['required', 'string', 'max:5000000'],
+        ]);
+
+        $employee = $this->employee($request);
+        $employee->update(['photo' => $validated['photo']]);
+
+        return response()->json([
+            'message' => 'Foto profil diperbarui.',
+            'data' => ['photo' => $employee->photo],
+        ]);
+    }
+
     private function employee(Request $request): Employee
     {
         return $request->user()->employee;

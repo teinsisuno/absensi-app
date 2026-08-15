@@ -74,7 +74,7 @@ $env:CLAUDE_CODE_SUBAGENT_MODEL="deepseek-v4-flash"
 $env:CLAUDE_CODE_EFFORT_LEVEL="max"
 $env:CLAUDE_CODE_AUTO_COMPACT_WINDOW="786432"
 
-Bertindaklah sebagai Software Engineer ahli. Saya membutuhkan bantuanmu untuk membuatkan **[isi dengan: kode Flutter / React Native / Flowchart]** berdasarkan alur "Proses Daftar, Login hingga Beranda" berikut ini. Pastikan untuk mengimplementasikan logika dan penanganan _error_ (_edge cases_) dengan baik.
+berdasarkan alur "Proses Daftar, Login hingga Beranda" berikut ini. Tolong cek apakah aplikasi saat ini sudah mengimplementasikan alur dan logika serta penanganan _error_ (_edge cases_) dengan baik.
 
 ## 1. Cek database lokal untuk Tenant/Link
 
@@ -86,6 +86,7 @@ Bertindaklah sebagai Software Engineer ahli. Saya membutuhkan bantuanmu untuk me
 - **Kondisi Kosong (Alur Register):**
   Tampilkan halaman register. User memasukkan nama, email, dan password.
     - _Validasi:_ Cek API apakah email sudah terdaftar. Jika ada, tampilkan pesan error. Jika tidak, simpan data ke server dan lokal, lalu arahkan user untuk set PIN. Setelah set PIN selesai, lanjut ke tahap 3.
+
 - **Kondisi Terisi (Alur Login):**
   Tampilkan halaman login dengan input PIN saja.
     - _Validasi:_ Jika PIN yang dimasukkan salah, tampilkan pesan error dan minta input ulang. Jika benar, lanjut ke tahap 3.

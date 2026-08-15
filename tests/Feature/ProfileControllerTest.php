@@ -100,6 +100,54 @@ class ProfileControllerTest extends TestCase
             ->assertJsonPath('data.0.title', 'KTP');
     }
 
+    public function test_karyawan_bisa_update_foto_profil(): void
+    {
+        $this->provisionTenant('tokoa');
+        $this->withTenantHost('tokoa');
+
+        [$employee, $token] = $this->makeEmployee('tokoa', 'Siti');
+
+        $this->withToken($token)
+            ->postJson('/api/v1/me/photo', [
+                'photo' => 'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+            ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Foto profil diperbarui.')
+            ->assertJsonPath('data.photo', 'data:image/jpeg;base64,/9j/4AAQSkZJRg==');
+
+        tenancy()->initialize('tokoa');
+        $this->assertSame('data:image/jpeg;base64,/9j/4AAQSkZJRg==', $employee->fresh()->photo);
+        tenancy()->end();
+    }
+
+    public function test_update_foto_profil_bisa_data_uri_besar(): void
+    {
+        $this->provisionTenant('tokoa');
+        $this->withTenantHost('tokoa');
+
+        [, $token] = $this->makeEmployee('tokoa', 'Siti');
+
+        // Data URI terkompres realistis (800px/0.7q) bisa 100KB+ — harus muat di LONGTEXT.
+        $largePhoto = 'data:image/jpeg;base64,'.str_repeat('A', 100_000);
+
+        $this->withToken($token)
+            ->postJson('/api/v1/me/photo', ['photo' => $largePhoto])
+            ->assertOk()
+            ->assertJsonPath('data.photo', $largePhoto);
+    }
+
+    public function test_update_foto_profil_wajib_isi_photo(): void
+    {
+        $this->provisionTenant('tokoa');
+        $this->withTenantHost('tokoa');
+
+        [, $token] = $this->makeEmployee('tokoa', 'Siti');
+
+        $this->withToken($token)
+            ->postJson('/api/v1/me/photo', [])
+            ->assertStatus(422);
+    }
+
     public function test_profile_hanya_untuk_user_ter_link(): void
     {
         $this->provisionTenant('tokoa');

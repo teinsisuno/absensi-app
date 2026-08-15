@@ -197,6 +197,7 @@ Route::middleware([
         // Profil & dokumen karyawan
         Route::get('/me', [ProfileController::class, 'me']);
         Route::put('/me', [ProfileController::class, 'updateProfile']);
+        Route::post('/me/photo', [ProfileController::class, 'updatePhoto']);
         Route::get('/me/documents', [ProfileController::class, 'documents']);
 
         // Face recognition (enroll/verify/status)
