@@ -145,7 +145,7 @@
 
       <!-- Lokasi Kerja -->
       <div v-if="activeTab === 'lokasi'" class="space-y-6">
-        <LocationsPanel />
+        <AdminLocationsPanel />
       </div>
     </div>
   </div>
